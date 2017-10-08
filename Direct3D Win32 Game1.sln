@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Direct3D Win32 Game1", "Direct3D Win32 Game1\Direct3D Win32 Game1.vcxproj", "{530227AA-FE09-43B1-AE88-457E6F38F841}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Direct3D Win32 TK_pngDrawSample", "Direct3D Win32 Game1\Direct3D Win32 Game1.vcxproj", "{530227AA-FE09-43B1-AE88-457E6F38F841}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3DDrawTest", "3DDrawTest\3DDrawTest.vcxproj", "{562F2097-369C-4C37-9007-289254A1BC93}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,14 @@ Global
 		{530227AA-FE09-43B1-AE88-457E6F38F841}.Release|x64.Build.0 = Release|x64
 		{530227AA-FE09-43B1-AE88-457E6F38F841}.Release|x86.ActiveCfg = Release|Win32
 		{530227AA-FE09-43B1-AE88-457E6F38F841}.Release|x86.Build.0 = Release|Win32
+		{562F2097-369C-4C37-9007-289254A1BC93}.Debug|x64.ActiveCfg = Debug|x64
+		{562F2097-369C-4C37-9007-289254A1BC93}.Debug|x64.Build.0 = Debug|x64
+		{562F2097-369C-4C37-9007-289254A1BC93}.Debug|x86.ActiveCfg = Debug|Win32
+		{562F2097-369C-4C37-9007-289254A1BC93}.Debug|x86.Build.0 = Debug|Win32
+		{562F2097-369C-4C37-9007-289254A1BC93}.Release|x64.ActiveCfg = Release|x64
+		{562F2097-369C-4C37-9007-289254A1BC93}.Release|x64.Build.0 = Release|x64
+		{562F2097-369C-4C37-9007-289254A1BC93}.Release|x86.ActiveCfg = Release|Win32
+		{562F2097-369C-4C37-9007-289254A1BC93}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
