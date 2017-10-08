@@ -33,9 +33,9 @@ void Game::Initialize(HWND window, int width, int height)
     // TODO: Change the timer settings if you want something other than the default variable timestep mode.
     // e.g. for 60 FPS fixed timestep update logic, call:
     /*
-    m_timer.SetFixedTimeStep(true);
-    m_timer.SetTargetElapsedSeconds(1.0 / 60);
     */
+	m_timer.SetFixedTimeStep(true);
+	m_timer.SetTargetElapsedSeconds(1.0 / 60);
 }
 
 // Executes the basic game loop.
@@ -53,7 +53,8 @@ void Game::Tick()
 void Game::Update(DX::StepTimer const& timer)
 {
     float elapsedTime = float(timer.GetElapsedSeconds());
-
+	m_pos.x += 4.f;
+	m_pos.y += 2.f;
     // TODO: Add your game logic here.
     elapsedTime;
 }
@@ -70,6 +71,9 @@ void Game::Render()
     Clear();
 
     // TODO: Add your rendering code here.
+	m_spriteBatch->Begin();
+	m_spriteBatch->Draw(m_texture.Get(), m_pos);
+	m_spriteBatch->End();
 
     Present();
 }
@@ -213,6 +217,17 @@ void Game::CreateDevice()
     DX::ThrowIfFailed(context.As(&m_d3dContext));
 
     // TODO: Initialize device dependent objects here (independent of window size).
+	m_spriteBatch = std::make_unique<SpriteBatch>(m_d3dContext.Get());
+	ComPtr<ID3D11Resource> resource;
+	DX::ThrowIfFailed(
+		CreateWICTextureFromFile(m_d3dDevice.Get(), L"hito.png", resource.GetAddressOf(), m_texture.ReleaseAndGetAddressOf())
+	);
+
+	ComPtr<ID3D11Texture2D> texture;
+	DX::ThrowIfFailed(resource.As(&texture));
+
+	CD3D11_TEXTURE2D_DESC textureDesc;
+	texture->GetDesc(&textureDesc);
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -319,7 +334,9 @@ void Game::OnDeviceLost()
     m_renderTargetView.Reset();
     m_swapChain.Reset();
     m_d3dContext.Reset();
-    m_d3dDevice.Reset();
+    m_d3dDevice.Reset(); 
+	m_texture.Reset();
+	m_spriteBatch.reset();
 
     CreateDevice();
 

@@ -41,6 +41,16 @@
 #include <memory>
 #include <stdexcept>
 
+#ifdef _DEBUG
+#pragma comment(lib, "DirectXTK_d.lib")
+#else
+#pragma comment(lib, "DirectXTK.lib")
+#endif
+
+#include "SpriteBatch.h"
+#include "WICTextureLoader.h"
+#include "SimpleMath.h"
+
 namespace DX
 {
     inline void ThrowIfFailed(HRESULT hr)

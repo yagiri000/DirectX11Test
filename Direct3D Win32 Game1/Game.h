@@ -12,6 +12,10 @@
 class Game
 {
 public:
+	
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_texture;
+	std::unique_ptr<DirectX::SpriteBatch> m_spriteBatch;
+	DirectX::SimpleMath::Vector2 m_pos;
 
     Game();
 
