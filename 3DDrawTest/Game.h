@@ -7,11 +7,20 @@
 #include "StepTimer.h"
 
 
+//--------------------------------------------------------------------------------------
+// Structures
+//--------------------------------------------------------------------------------------
+struct SimpleVertex
+{
+	DirectX::XMFLOAT3 Pos;
+};
+
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
 class Game
 {
 public:
+
 
     Game();
 
@@ -30,6 +39,8 @@ public:
 
     // Properties
     void GetDefaultSize( int& width, int& height ) const;
+
+	HRESULT CompileShaderFromFile(WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut);
 
 private:
 
@@ -56,6 +67,11 @@ private:
     Microsoft::WRL::ComPtr<IDXGISwapChain1>         m_swapChain;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
+
+	ID3D11VertexShader*     g_pVertexShader = NULL;
+	ID3D11PixelShader*      g_pPixelShader = NULL;
+	ID3D11InputLayout*      g_pVertexLayout = NULL;
+	ID3D11Buffer*           g_pVertexBuffer = NULL;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;

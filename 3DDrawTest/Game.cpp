@@ -4,6 +4,7 @@
 
 #include "pch.h"
 #include "Game.h"
+#include <d3dcompiler.h>
 
 extern void ExitGame();
 
@@ -70,6 +71,10 @@ void Game::Render()
     Clear();
 
     // TODO: Add your rendering code here.
+    // Render a triangle
+	m_d3dContext.Get()->VSSetShader(g_pVertexShader, NULL, 0);
+	m_d3dContext.Get()->PSSetShader(g_pPixelShader, NULL, 0);
+	m_d3dContext.Get()->Draw(3, 0);
 
     Present();
 }
@@ -148,6 +153,33 @@ void Game::GetDefaultSize(int& width, int& height) const
     height = 600;
 }
 
+HRESULT Game::CompileShaderFromFile(WCHAR * szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob ** ppBlobOut)
+{
+	HRESULT hr = S_OK;
+
+	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if defined( DEBUG ) || defined( _DEBUG )
+	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
+	// Setting this flag improves the shader debugging experience, but still allows 
+	// the shaders to be optimized and to run exactly the way they will run in 
+	// the release configuration of this program.
+	dwShaderFlags |= D3DCOMPILE_DEBUG;
+#endif
+
+	ID3DBlob* pErrorBlob;
+	hr = D3DCompileFromFile(szFileName, NULL, NULL, szEntryPoint, szShaderModel,
+		dwShaderFlags, 0, ppBlobOut, &pErrorBlob);
+	if (FAILED(hr)) {
+		if (pErrorBlob != NULL)
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+		if (pErrorBlob) pErrorBlob->Release();
+		return hr;
+	}
+	if (pErrorBlob) pErrorBlob->Release();
+
+	return S_OK;
+}
+
 // These are the resources that depend on the device.
 void Game::CreateDevice()
 {
@@ -213,6 +245,9 @@ void Game::CreateDevice()
     DX::ThrowIfFailed(context.As(&m_d3dContext));
 
     // TODO: Initialize device dependent objects here (independent of window size).
+
+
+
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -309,6 +344,91 @@ void Game::CreateResources()
     DX::ThrowIfFailed(m_d3dDevice->CreateDepthStencilView(depthStencil.Get(), &depthStencilViewDesc, m_depthStencilView.ReleaseAndGetAddressOf()));
 
     // TODO: Initialize windows-size dependent objects here.
+	// 以下，追加した関数群
+
+
+	// TODO : 例外処理が妥当か確認する．適当に書き直したので合っているかわからない
+	HRESULT hr;
+
+
+	// Compile the vertex shader
+	ID3DBlob* pVSBlob = NULL;
+	hr = CompileShaderFromFile(L"Tutorial02.fx", "VS", "vs_4_0", &pVSBlob);
+	if (FAILED(hr)) {
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return DX::ThrowIfFailed(hr);
+	}
+
+	// Create the vertex shader
+	
+	hr = m_d3dDevice.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &g_pVertexShader);
+	if (FAILED(hr)) {
+		pVSBlob->Release();
+		return DX::ThrowIfFailed(hr);
+	}
+
+	// Define the input layout
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	UINT numElements = ARRAYSIZE(layout);
+
+	// Create the input layout
+	hr = m_d3dDevice.Get()->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
+		pVSBlob->GetBufferSize(), &g_pVertexLayout);
+	pVSBlob->Release();
+	if (FAILED(hr))
+		return DX::ThrowIfFailed(hr);
+
+	// Set the input layout
+	m_d3dContext.Get()->IASetInputLayout(g_pVertexLayout);
+
+	// Compile the pixel shader
+	ID3DBlob* pPSBlob = NULL;
+	hr = CompileShaderFromFile(L"Tutorial02.fx", "PS", "ps_4_0", &pPSBlob);
+	if (FAILED(hr)) {
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return DX::ThrowIfFailed(hr);
+	}
+
+	// Create the pixel shader
+	hr = m_d3dDevice.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pPixelShader);
+	pPSBlob->Release();
+	if (FAILED(hr))		
+		return DX::ThrowIfFailed(hr);
+
+
+	// Create vertex buffer
+	SimpleVertex vertices[] =
+	{
+		XMFLOAT3(0.0f, 0.5f, 0.5f),
+		XMFLOAT3(0.5f, -0.5f, 0.5f),
+		XMFLOAT3(-0.5f, -0.5f, 0.5f),
+	};
+	D3D11_BUFFER_DESC bd;
+	ZeroMemory(&bd, sizeof(bd));
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(SimpleVertex) * 3;
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = 0;
+	D3D11_SUBRESOURCE_DATA InitData;
+	ZeroMemory(&InitData, sizeof(InitData));
+	InitData.pSysMem = vertices;
+	hr = m_d3dDevice.Get()->CreateBuffer(&bd, &InitData, &g_pVertexBuffer);
+	if (FAILED(hr))
+		return DX::ThrowIfFailed(hr);
+
+	// Set vertex buffer
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	m_d3dContext.Get()->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+
+	// Set primitive topology
+	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 }
 
 void Game::OnDeviceLost()
@@ -320,6 +440,11 @@ void Game::OnDeviceLost()
     m_swapChain.Reset();
     m_d3dContext.Reset();
     m_d3dDevice.Reset();
+
+	if (g_pVertexBuffer) g_pVertexBuffer->Release();
+	if (g_pVertexLayout) g_pVertexLayout->Release();
+	if (g_pVertexShader) g_pVertexShader->Release();
+	if (g_pPixelShader) g_pPixelShader->Release();
 
     CreateDevice();
 

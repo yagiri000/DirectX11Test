@@ -43,6 +43,7 @@
 
 #ifdef _DEBUG
 #pragma comment(lib, "DirectXTK_d.lib")
+#pragma comment(lib, "d3dcompiler.lib")
 #else
 #pragma comment(lib, "DirectXTK.lib")
 #endif
