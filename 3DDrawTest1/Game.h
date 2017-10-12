@@ -5,6 +5,7 @@
 #pragma once
 
 #include "StepTimer.h"
+#include "CommonStates.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -16,8 +17,7 @@ struct SimpleVertex
 	DirectX::XMFLOAT3 Pos;
 };
 
-// A basic game implementation that creates a D3D11 device and
-// provides a game loop.
+// 3DポリゴンとSpriteBatchを用いて2Dテクスチャを描画する例
 class Game
 {
 public:
@@ -73,8 +73,7 @@ private:
 	ComPtr<ID3D11PixelShader>		m_pixelShader;
 	ComPtr<ID3D11InputLayout>		m_vertexLayout;
 	ComPtr<ID3D11Buffer>			m_vertexBuffer;
-	ComPtr<ID3D11BlendState>		m_blendState_Default;
-	ComPtr<ID3D11BlendState>		m_blendState_Alpha;
+	std::unique_ptr<DirectX::CommonStates> m_states;
 
 	ComPtr<ID3D11ShaderResourceView> m_texture;
 	std::unique_ptr<DirectX::SpriteBatch> m_spriteBatch;

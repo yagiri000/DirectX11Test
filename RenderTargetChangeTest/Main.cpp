@@ -67,7 +67,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
         AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
-        HWND hwnd = CreateWindowEx(0, L"_3DDrawTestWindowClass", L"3DDrawTest", WS_OVERLAPPEDWINDOW,
+        HWND hwnd = CreateWindowEx(0, L"_3DDrawTestWindowClass", L"RenderTargetChangeTest", WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance,
             nullptr);
         // TODO: Change to CreateWindowEx(WS_EX_TOPMOST, L"_3DDrawTestWindowClass", L"3DDrawTest", WS_POPUP,
@@ -250,6 +250,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // A menu is active and the user presses a key that does not correspond
         // to any mnemonic or accelerator key. Ignore so we don't produce an error beep.
         return MAKELRESULT(0, MNC_CLOSE);
+
+	case WM_INPUT:
+	case WM_MOUSEMOVE:
+	case WM_LBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_RBUTTONDOWN:
+	case WM_RBUTTONUP:
+	case WM_MBUTTONDOWN:
+	case WM_MBUTTONUP:
+	case WM_MOUSEWHEEL:
+	case WM_XBUTTONDOWN:
+	case WM_XBUTTONUP:
+	case WM_MOUSEHOVER:
+		Mouse::ProcessMessage(message, wParam, lParam);
+		break;
+
+	case WM_KEYDOWN:
+	case WM_KEYUP:
+	case WM_SYSKEYUP:
+		Keyboard::ProcessMessage(message, wParam, lParam);
+		break;
     }
 
     return DefWindowProc(hWnd, message, wParam, lParam);

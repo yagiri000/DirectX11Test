@@ -79,17 +79,15 @@ void Game::Render()
 	m_d3dContext.Get()->IASetInputLayout(m_vertexLayout.Get());
 	m_d3dContext.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
 	m_d3dContext.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
-	m_d3dContext->OMSetBlendState(m_blendState_Default.Get(), blendFactor, 0xffffffff);
 	m_d3dContext.Get()->Draw(3, 0);
 
 	// Render a sprite
-	m_spriteBatch->Begin(DirectX::SpriteSortMode_Immediate, m_blendState_Alpha.Get());
+	m_spriteBatch->Begin(SpriteSortMode_Deferred, m_states->NonPremultiplied());
 	m_pos = DirectX::SimpleMath::Vector2(280.0f, 240.0f);
-	m_spriteBatch->Draw(m_texture.Get(), m_pos);
+	m_spriteBatch->Draw(m_texture.Get(), m_pos, nullptr, Colors::White, 0.f);
 	m_spriteBatch->End();
 
 	Present();
-
 }
 
 // Helper method to clear the back buffers.
@@ -268,6 +266,8 @@ void Game::CreateDevice()
 	CD3D11_TEXTURE2D_DESC textureDesc;
 	texture->GetDesc(&textureDesc);
 
+
+	m_states.reset(new CommonStates(m_d3dDevice.Get()));
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -445,37 +445,6 @@ void Game::CreateResources()
 	// Set primitive topology
 	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	{
-		D3D11_BLEND_DESC BlendDesc;
-		ZeroMemory(&BlendDesc, sizeof(BlendDesc));
-		BlendDesc.AlphaToCoverageEnable = FALSE;
-		BlendDesc.IndependentBlendEnable = FALSE;
-		BlendDesc.RenderTarget[0].BlendEnable = TRUE;
-		BlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-		BlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_DEST_COLOR;
-		BlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		BlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-		BlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-		BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		m_d3dDevice->CreateBlendState(&BlendDesc, m_blendState_Alpha.GetAddressOf());
-	}
-
-	{
-		D3D11_BLEND_DESC BlendDesc;
-		ZeroMemory(&BlendDesc, sizeof(BlendDesc));
-		BlendDesc.AlphaToCoverageEnable = FALSE;
-		BlendDesc.IndependentBlendEnable = FALSE;
-		BlendDesc.RenderTarget[0].BlendEnable = FALSE;
-		BlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-		BlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
-		BlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		BlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-		BlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-		BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		m_d3dDevice->CreateBlendState(&BlendDesc, m_blendState_Default.GetAddressOf());
-	}
 
 }
 
@@ -493,12 +462,12 @@ void Game::OnDeviceLost()
 	m_pixelShader.Reset();
 	m_vertexLayout.Reset();
 	m_vertexBuffer.Reset();
-	m_blendState_Alpha.Reset();
-	m_blendState_Default.Reset();
 
 	// テクスチャ
 	m_texture.Reset();
 	m_spriteBatch.reset();
+
+	m_states.reset();
 
 	CreateDevice();
 

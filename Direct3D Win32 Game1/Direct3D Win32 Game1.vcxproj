@@ -23,7 +23,7 @@
     <ProjectGuid>{530227aa-fe09-43b1-ae88-457e6f38f841}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
-    <ProjectName>Direct3D Win32 TK_pngDrawSample</ProjectName>
+    <ProjectName>PNGDrawTest</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
