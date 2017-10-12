@@ -220,7 +220,7 @@ void Game::CreateDevice()
 	m_spriteBatch = std::make_unique<SpriteBatch>(m_d3dContext.Get());
 	ComPtr<ID3D11Resource> resource;
 	DX::ThrowIfFailed(
-		CreateWICTextureFromFile(m_d3dDevice.Get(), L"hito.png", resource.GetAddressOf(), m_texture.ReleaseAndGetAddressOf())
+		CreateWICTextureFromFile(m_d3dDevice.Get(), L"DotRed64.png", resource.GetAddressOf(), m_texture.ReleaseAndGetAddressOf())
 	);
 
 	ComPtr<ID3D11Texture2D> texture;
