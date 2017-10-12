@@ -72,8 +72,8 @@ void Game::Render()
 
     // TODO: Add your rendering code here.
     // Render a triangle
-	m_d3dContext.Get()->VSSetShader(m_vertexShader, NULL, 0);
-	m_d3dContext.Get()->PSSetShader(m_pixelShader, NULL, 0);
+	m_d3dContext.Get()->VSSetShader(g_pVertexShader, NULL, 0);
+	m_d3dContext.Get()->PSSetShader(g_pPixelShader, NULL, 0);
 	m_d3dContext.Get()->Draw(3, 0);
 
     Present();
@@ -362,7 +362,7 @@ void Game::CreateResources()
 
 	// Create the vertex shader
 	
-	hr = m_d3dDevice.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &m_vertexShader);
+	hr = m_d3dDevice.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &g_pVertexShader);
 	if (FAILED(hr)) {
 		pVSBlob->Release();
 		return DX::ThrowIfFailed(hr);
@@ -377,13 +377,13 @@ void Game::CreateResources()
 
 	// Create the input layout
 	hr = m_d3dDevice.Get()->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
-		pVSBlob->GetBufferSize(), &m_vertexLayout);
+		pVSBlob->GetBufferSize(), &g_pVertexLayout);
 	pVSBlob->Release();
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set the input layout
-	m_d3dContext.Get()->IASetInputLayout(m_vertexLayout);
+	m_d3dContext.Get()->IASetInputLayout(g_pVertexLayout);
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = NULL;
@@ -395,7 +395,7 @@ void Game::CreateResources()
 	}
 
 	// Create the pixel shader
-	hr = m_d3dDevice.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &m_pixelShader);
+	hr = m_d3dDevice.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pPixelShader);
 	pPSBlob->Release();
 	if (FAILED(hr))		
 		return DX::ThrowIfFailed(hr);
@@ -417,14 +417,14 @@ void Game::CreateResources()
 	D3D11_SUBRESOURCE_DATA InitData;
 	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = vertices;
-	hr = m_d3dDevice.Get()->CreateBuffer(&bd, &InitData, &m_vertexBuffer);
+	hr = m_d3dDevice.Get()->CreateBuffer(&bd, &InitData, &g_pVertexBuffer);
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set vertex buffer
 	UINT stride = sizeof(SimpleVertex);
 	UINT offset = 0;
-	m_d3dContext.Get()->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+	m_d3dContext.Get()->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
 
 	// Set primitive topology
 	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -441,10 +441,10 @@ void Game::OnDeviceLost()
     m_d3dContext.Reset();
     m_d3dDevice.Reset();
 
-	if (m_vertexBuffer) m_vertexBuffer->Release();
-	if (m_vertexLayout) m_vertexLayout->Release();
-	if (m_vertexShader) m_vertexShader->Release();
-	if (m_pixelShader) m_pixelShader->Release();
+	if (g_pVertexBuffer) g_pVertexBuffer->Release();
+	if (g_pVertexLayout) g_pVertexLayout->Release();
+	if (g_pVertexShader) g_pVertexShader->Release();
+	if (g_pPixelShader) g_pPixelShader->Release();
 
     CreateDevice();
 

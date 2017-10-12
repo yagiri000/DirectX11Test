@@ -68,10 +68,10 @@ private:
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
 
-	ID3D11VertexShader*     m_vertexShader = NULL;
-	ID3D11PixelShader*      m_pixelShader = NULL;
-	ID3D11InputLayout*      m_vertexLayout = NULL;
-	ID3D11Buffer*           m_vertexBuffer = NULL;
+	ID3D11VertexShader*     g_pVertexShader = NULL;
+	ID3D11PixelShader*      g_pPixelShader = NULL;
+	ID3D11InputLayout*      g_pVertexLayout = NULL;
+	ID3D11Buffer*           g_pVertexBuffer = NULL;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;

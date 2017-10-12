@@ -6,6 +6,7 @@
 
 #include "StepTimer.h"
 
+using Microsoft::WRL::ComPtr;
 
 //--------------------------------------------------------------------------------------
 // Structures
@@ -61,19 +62,21 @@ private:
 	int                                             m_outputHeight;
 
 	D3D_FEATURE_LEVEL                               m_featureLevel;
-	Microsoft::WRL::ComPtr<ID3D11Device1>           m_d3dDevice;
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext1>    m_d3dContext;
+	ComPtr<ID3D11Device1>           m_d3dDevice;
+	ComPtr<ID3D11DeviceContext1>    m_d3dContext;
 
-	Microsoft::WRL::ComPtr<IDXGISwapChain1>         m_swapChain;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
+	ComPtr<IDXGISwapChain1>         m_swapChain;
+	ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
+	ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
 
-	ID3D11VertexShader*     g_pVertexShader = NULL;
-	ID3D11PixelShader*      g_pPixelShader = NULL;
-	ID3D11InputLayout*      g_pVertexLayout = NULL;
-	ID3D11Buffer*           g_pVertexBuffer = NULL;
+	ComPtr<ID3D11VertexShader>		m_vertexShader;
+	ComPtr<ID3D11PixelShader>		m_pixelShader;
+	ComPtr<ID3D11InputLayout>		m_vertexLayout;
+	ComPtr<ID3D11Buffer>			m_vertexBuffer;
+	ComPtr<ID3D11BlendState>		m_blendState_Default;
+	ComPtr<ID3D11BlendState>		m_blendState_Alpha;
 
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_texture;
+	ComPtr<ID3D11ShaderResourceView> m_texture;
 	std::unique_ptr<DirectX::SpriteBatch> m_spriteBatch;
 	DirectX::SimpleMath::Vector2 m_pos;
 

@@ -69,18 +69,22 @@ void Game::Render()
 
 	Clear();
 
+	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
 	// Render a triangle
 	UINT stride = sizeof(SimpleVertex);
 	UINT offset = 0;
-	m_d3dContext.Get()->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+	m_d3dContext.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_d3dContext.Get()->IASetInputLayout(g_pVertexLayout);
-	m_d3dContext.Get()->VSSetShader(g_pVertexShader, NULL, 0);
-	m_d3dContext.Get()->PSSetShader(g_pPixelShader, NULL, 0);
+	m_d3dContext.Get()->IASetInputLayout(m_vertexLayout.Get());
+	m_d3dContext.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_d3dContext.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+	m_d3dContext->OMSetBlendState(m_blendState_Default.Get(), blendFactor, 0xffffffff);
 	m_d3dContext.Get()->Draw(3, 0);
 
 	// Render a sprite
-	m_spriteBatch->Begin();
+	m_spriteBatch->Begin(DirectX::SpriteSortMode_Immediate, m_blendState_Alpha.Get());
+	m_pos = DirectX::SimpleMath::Vector2(280.0f, 240.0f);
 	m_spriteBatch->Draw(m_texture.Get(), m_pos);
 	m_spriteBatch->End();
 
@@ -374,7 +378,7 @@ void Game::CreateResources()
 
 	// Create the vertex shader
 
-	hr = m_d3dDevice.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &g_pVertexShader);
+	hr = m_d3dDevice.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, m_vertexShader.GetAddressOf());
 	if (FAILED(hr)) {
 		pVSBlob->Release();
 		return DX::ThrowIfFailed(hr);
@@ -389,13 +393,13 @@ void Game::CreateResources()
 
 	// Create the input layout
 	hr = m_d3dDevice.Get()->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
-		pVSBlob->GetBufferSize(), &g_pVertexLayout);
+		pVSBlob->GetBufferSize(), m_vertexLayout.GetAddressOf());
 	pVSBlob->Release();
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set the input layout
-	m_d3dContext.Get()->IASetInputLayout(g_pVertexLayout);
+	m_d3dContext.Get()->IASetInputLayout(m_vertexLayout.Get());
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = NULL;
@@ -407,7 +411,7 @@ void Game::CreateResources()
 	}
 
 	// Create the pixel shader
-	hr = m_d3dDevice.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pPixelShader);
+	hr = m_d3dDevice.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, m_pixelShader.GetAddressOf());
 	pPSBlob->Release();
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
@@ -429,17 +433,49 @@ void Game::CreateResources()
 	D3D11_SUBRESOURCE_DATA InitData;
 	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = vertices;
-	hr = m_d3dDevice.Get()->CreateBuffer(&bd, &InitData, &g_pVertexBuffer);
+	hr = m_d3dDevice.Get()->CreateBuffer(&bd, &InitData, m_vertexBuffer.GetAddressOf());
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set vertex buffer
 	UINT stride = sizeof(SimpleVertex);
 	UINT offset = 0;
-	m_d3dContext.Get()->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+	m_d3dContext.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
 	// Set primitive topology
 	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	{
+		D3D11_BLEND_DESC BlendDesc;
+		ZeroMemory(&BlendDesc, sizeof(BlendDesc));
+		BlendDesc.AlphaToCoverageEnable = FALSE;
+		BlendDesc.IndependentBlendEnable = FALSE;
+		BlendDesc.RenderTarget[0].BlendEnable = TRUE;
+		BlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		BlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_DEST_COLOR;
+		BlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		BlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		BlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+		BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		m_d3dDevice->CreateBlendState(&BlendDesc, m_blendState_Alpha.GetAddressOf());
+	}
+
+	{
+		D3D11_BLEND_DESC BlendDesc;
+		ZeroMemory(&BlendDesc, sizeof(BlendDesc));
+		BlendDesc.AlphaToCoverageEnable = FALSE;
+		BlendDesc.IndependentBlendEnable = FALSE;
+		BlendDesc.RenderTarget[0].BlendEnable = FALSE;
+		BlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		BlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
+		BlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		BlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		BlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+		BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		m_d3dDevice->CreateBlendState(&BlendDesc, m_blendState_Default.GetAddressOf());
+	}
 
 }
 
@@ -453,10 +489,12 @@ void Game::OnDeviceLost()
 	m_d3dContext.Reset();
 	m_d3dDevice.Reset();
 
-	if (g_pVertexBuffer) g_pVertexBuffer->Release();
-	if (g_pVertexLayout) g_pVertexLayout->Release();
-	if (g_pVertexShader) g_pVertexShader->Release();
-	if (g_pPixelShader) g_pPixelShader->Release();
+	m_vertexShader.Reset();
+	m_pixelShader.Reset();
+	m_vertexLayout.Reset();
+	m_vertexBuffer.Reset();
+	m_blendState_Alpha.Reset();
+	m_blendState_Default.Reset();
 
 	// テクスチャ
 	m_texture.Reset();
