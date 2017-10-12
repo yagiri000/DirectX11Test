@@ -2,8 +2,6 @@
 // Game.cpp
 //
 
-//
-
 #include "pch.h"
 #include "Game.h"
 #include <d3dcompiler.h>
@@ -85,15 +83,12 @@ void Game::Render()
 
 
 	Clear();
-	
-	auto mouse = m_mouse->GetState();
 
-	if (mouse.leftButton) {
-		// Render a sprite
-		m_spriteBatch->Begin(SpriteSortMode_Deferred, m_states->NonPremultiplied());
-		m_spriteBatch->Draw(m_texture.Get(), m_pos, nullptr, Colors::White, 0.f, Vector2(32.0f, 32.0f));
-		m_spriteBatch->End();
-	}
+
+	// Render a sprite
+	m_spriteBatch->Begin(SpriteSortMode_Deferred, m_states->NonPremultiplied());
+	m_spriteBatch->Draw(m_texture.Get(), m_pos, nullptr, Colors::White, 0.f, Vector2(32.0f, 32.0f));
+	m_spriteBatch->End();
 
 	Present();
 
@@ -103,7 +98,7 @@ void Game::Render()
 void Game::Clear()
 {
 	// Clear the views.
-	//m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
+	m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
 	m_d3dContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	m_d3dContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());

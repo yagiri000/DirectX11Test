@@ -2,8 +2,6 @@
 // Game.cpp
 //
 
-//
-
 #include "pch.h"
 #include "Game.h"
 #include <d3dcompiler.h>
@@ -65,14 +63,29 @@ void Game::Update(DX::StepTimer const& timer)
 
 	// Input update
 	auto kb = m_keyboard->GetState();
-	if (kb.Escape)
+	if (kb.Escape) {
+
 		PostQuitMessage(0);
+	}
 
 
-	m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
+	const float SPEED = 3.0f;
+
+
+	if (kb.W) {
+		m_pos += SPEED * Vector2(0.0f, -1.0f);
+	}
+	if (kb.A) {
+		m_pos += SPEED * Vector2(-1.0f, 0.0f);
+	}
+	if (kb.S) {
+		m_pos += SPEED * Vector2(0.0f, 1.0f);
+	}
+	if (kb.D) {
+		m_pos += SPEED * Vector2(1.0f, 0.0f);
+	}
+
 	auto mouse = m_mouse->GetState();
-	Vector2 position = Vector2(float(mouse.x), float(mouse.y));
-	m_pos = position;
 }
 
 // Draws the scene.
@@ -85,15 +98,23 @@ void Game::Render()
 
 
 	Clear();
-	
-	auto mouse = m_mouse->GetState();
 
-	if (mouse.leftButton) {
-		// Render a sprite
-		m_spriteBatch->Begin(SpriteSortMode_Deferred, m_states->NonPremultiplied());
-		m_spriteBatch->Draw(m_texture.Get(), m_pos, nullptr, Colors::White, 0.f, Vector2(32.0f, 32.0f));
-		m_spriteBatch->End();
-	}
+
+	// Render a triangle
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	m_d3dContext.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_d3dContext.Get()->IASetInputLayout(m_vertexLayout.Get());
+	m_d3dContext.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_d3dContext.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+	m_d3dContext.Get()->Draw(3, 0);
+
+
+	// Render a sprite
+	m_spriteBatch->Begin(SpriteSortMode_Deferred, m_states->NonPremultiplied());
+	m_spriteBatch->Draw(m_texture.Get(), m_pos, nullptr, Colors::White, 0.f);
+	m_spriteBatch->End();
 
 	Present();
 
@@ -103,7 +124,7 @@ void Game::Render()
 void Game::Clear()
 {
 	// Clear the views.
-	//m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
+	m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
 	m_d3dContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	m_d3dContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
