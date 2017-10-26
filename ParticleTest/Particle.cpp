@@ -34,10 +34,13 @@ void Particle::Update(float deltaTime)
 
 void Particle::Draw() const
 {
-	Quaternion forward = Utility::GetCameraTransform().Forward();
+	// TODO : ‘O•û‚ðŒü‚­‚æ‚¤‚É‚·‚é
+	Quaternion forward = Utility::GetCameraTransform().m_rotation;
+
 	float rate = GetTimeRate();
-	Transform transform(m_position, (Vector3)m_scaleCurve.Get(rate),  m_rotationCurve.Get(rate));
-	transform.GetMatrix();
+	Transform transform(m_position, (Vector3)m_scaleCurve.Get(rate), forward);
+
+	Utility::DrawPlane(transform);
 }
 
 Particle::Particle()

@@ -19,7 +19,6 @@ public:
 	MinMaxCurve();
 	MinMaxCurve(float min, float max);
 	MinMaxCurve(float min, float max, const std::function<float(float, float, float)>& easing);
-	~MinMaxCurve();
 	float Get(float rate) const;
 };
 

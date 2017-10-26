@@ -5,6 +5,9 @@
 #include "pch.h"
 #include "Game.h"
 #include <d3dcompiler.h>
+#include "Utility.h"
+#include "Particle.h"
+#include "Random.h"
 
 extern void ExitGame();
 
@@ -32,6 +35,82 @@ void Game::Initialize(HWND window, int width, int height)
 
     CreateResources();
 
+	// TODO : 修正
+	// 現在グローバル領域の関数にラムダを突っ込み，Drawする部分でそれを呼んでいる
+	Utility::DrawPlane = [&](const Transform& trans) {
+
+		// 行列計算
+		XMMATRIX mWorld;
+		XMMATRIX mView;
+		XMMATRIX mProj;
+		
+		//ワールドトランスフォーム（絶対座標変換）
+		mWorld = trans.GetMatrix();
+
+		// ビュートランスフォーム（視点座標変換）
+		float elapsed = m_timer.GetFrameCount() / 60.0f;
+		Vector3 a(0.0f, 1.0f, 2.0f);
+		
+		a = Vector3::Transform(a, Matrix::CreateFromQuaternion(Quaternion::CreateFromYawPitchRoll(elapsed, 0.0f, 0.0f)));
+		XMVECTOR vEyePt = XMVectorSet(a.x, a.y, a.z, 1.0f); //カメラ（視点）位置
+		XMVECTOR vLookatPt = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);//注視位置
+		XMVECTOR vUpVec = XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f);//上方位置
+		mView = XMMatrixLookAtLH(vEyePt, vLookatPt, vUpVec);
+
+		Vector3 dir = Vector3(vLookatPt) - Vector3(vEyePt);
+		dir.Normalize();
+		Utility::SetCameraTransform(Transform(Vector3(vEyePt), Vector3::One, Utility::LookRotation(dir)));
+		
+
+		// プロジェクショントランスフォーム（射影変換）
+		int width, height;
+		Game::GetDefaultSize(width, height);
+		mProj = XMMatrixPerspectiveFovLH(XM_PI / 4, (float)width / (float)height, 0.1f, 110.0f);
+
+		// 使用シェーダー登録
+		m_d3dContext.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+		m_d3dContext.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+
+		// コンスタントバッファーに各種データを渡す
+		D3D11_MAPPED_SUBRESOURCE pData;
+		SIMPLESHADER_CONSTANT_BUFFER cb;
+		if (SUCCEEDED(m_d3dContext->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData)))
+		{
+			//ワールド、カメラ、射影行列を渡す
+			XMMATRIX m = mWorld*mView*mProj;
+			m = XMMatrixTranspose(m);
+			cb.mWVP = m;
+
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+			m_d3dContext->Unmap(m_constantBuffer.Get(), 0);
+		}
+
+		//このコンスタントバッファーを、どのシェーダーで使うかを指定
+		m_d3dContext->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+		m_d3dContext->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+
+		m_d3dContext.Get()->Draw(4, 0);
+	};
+
+
+	for (size_t i = 0; i < 10; i++) {
+		m_particles.emplace_back(
+			Particle(
+				Vector3::Zero,
+				Random::OnSphere(),
+				Vector3::Zero,
+				MinMaxCurve4(
+					MinMaxCurve(0.3f, 0.0f),
+					MinMaxCurve(0.3f, 0.0f),
+					MinMaxCurve(0.3f, 0.0f),
+					MinMaxCurve(0.3f, 1.0f)
+				),
+				MinMaxCurveRotation(),
+				MinMaxCurve4(),
+				1.0f
+			)
+		);
+	}
     // TODO: Change the timer settings if you want something other than the default variable timestep mode.
     // e.g. for 60 FPS fixed timestep update logic, call:
     /*
@@ -56,6 +135,35 @@ void Game::Update(DX::StepTimer const& timer)
 {
     float elapsedTime = float(timer.GetElapsedSeconds());
 
+	static bool pre = false;
+
+	if (GetKeyState('Z') & 0x80 && !pre) {
+		for (size_t i = 0; i < 30; i++) {
+
+			m_particles.emplace_back(
+				Particle(
+					Vector3::Zero,
+					Random::OnSphere() * Random::Range(1.0f, 3.0f),
+					Vector3::Zero,
+					MinMaxCurve4(
+						MinMaxCurve(0.15f, 0.0f),
+						MinMaxCurve(0.15f, 0.0f),
+						MinMaxCurve(0.15f, 0.0f),
+						MinMaxCurve(0.15f, 1.0f)
+					),
+					MinMaxCurveRotation(),
+					MinMaxCurve4(),
+					Random::Range(0.5f, 3.0f)
+				)
+			);
+		}
+	}
+	pre = GetKeyState('Z') & 0x80;
+
+	for (auto&& i : m_particles) {
+		i.Update(1.0f / 60.0f);
+	}
+
     // TODO: Add your game logic here.
     elapsedTime;
 }
@@ -74,51 +182,9 @@ void Game::Render()
     // TODO: Add your rendering code here.
     // Render a triangle
 
-	// 行列計算
-
-	XMMATRIX mWorld;
-	XMMATRIX mView;
-	XMMATRIX mProj;
-	//ワールドトランスフォーム（絶対座標変換）
-	float elapsed = m_timer.GetFrameCount() / 60.0f;
-	mWorld = XMMatrixRotationY(elapsed);
-
-	// ビュートランスフォーム（視点座標変換）
-	XMVECTOR vEyePt = XMVectorSet(0.0f, 1.0f, -2.0f, 1.0f); //カメラ（視点）位置
-	XMVECTOR vLookatPt = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);//注視位置
-	XMVECTOR vUpVec = XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f);//上方位置
-	mView = XMMatrixLookAtLH(vEyePt, vLookatPt, vUpVec);
-
-	// プロジェクショントランスフォーム（射影変換）
-	int width, height;
-	Game::GetDefaultSize(width, height);
-	mProj = XMMatrixPerspectiveFovLH(XM_PI / 4, (float)width / (float)height, 0.1f, 110.0f);
-
-	// 使用シェーダー登録
-	m_d3dContext.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-	m_d3dContext.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
-
-	// コンスタントバッファーに各種データを渡す
-	D3D11_MAPPED_SUBRESOURCE pData;
-	SIMPLESHADER_CONSTANT_BUFFER cb;
-	if (SUCCEEDED(m_d3dContext->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData)))
-	{
-		//ワールド、カメラ、射影行列を渡す
-		XMMATRIX m = mWorld*mView*mProj;
-		m = XMMatrixTranspose(m);
-		cb.mWVP = m;
-
-		memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-		m_d3dContext->Unmap(m_constantBuffer.Get(), 0);
+	for (auto&& i : m_particles) {
+		i.Draw();
 	}
-
-
-	//このコンスタントバッファーを、どのシェーダーで使うかを指定
-	m_d3dContext->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-	m_d3dContext->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
-
-
-	m_d3dContext.Get()->Draw(3, 0);
 
     Present();
 }
@@ -458,14 +524,15 @@ void Game::CreateResources()
 	// Create vertex buffer
 	SimpleVertex vertices[] =
 	{
-		XMFLOAT3(0.0f, 0.5f, 0.0f),
-		XMFLOAT3(0.5f, -0.5f, 0.0f),
-		XMFLOAT3(-0.5f, -0.5f, 0.0f),
+		XMFLOAT3(-0.5,-0.5,0),//頂点1	
+		XMFLOAT3(-0.5,0.5,0), //頂点2
+		XMFLOAT3(0.5,-0.5,0),  //頂点3
+		XMFLOAT3(0.5,0.5,0), //頂点4	
 	};
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(SimpleVertex) * 3;
+	bd.ByteWidth = sizeof(SimpleVertex) * 4;
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 	D3D11_SUBRESOURCE_DATA InitData;
@@ -481,7 +548,7 @@ void Game::CreateResources()
 	m_d3dContext.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
 	// Set primitive topology
-	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	// コンスタントバッファー作成　シェーダーに変換行列を渡す用
 

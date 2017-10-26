@@ -1,5 +1,10 @@
 #pragma once
 #include "Transform.h"
+#include <functional>
+
+using namespace DirectX;
+using namespace DirectX::SimpleMath;
+
 
 namespace Utility {
 	
@@ -10,4 +15,8 @@ namespace Utility {
 
 	// ’l‚ðmin‚Æmax‚ÌŠÔ‚É‚µ‚Ä•Ô‚·
 	float Clamp(float value, float min, float max);
+
+	extern std::function<void(const Transform& trans)> DrawPlane;
+
+	Quaternion LookRotation(const Vector3& dir);
 }

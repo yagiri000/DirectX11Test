@@ -5,6 +5,8 @@
 #pragma once
 
 #include "StepTimer.h"
+#include <vector>
+#include "Particle.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -79,6 +81,8 @@ private:
 	ComPtr<ID3D11InputLayout>		m_vertexLayout;
 	ComPtr<ID3D11Buffer>			m_vertexBuffer;
 	ComPtr<ID3D11Buffer>			m_constantBuffer;
+
+	std::vector<Particle>			m_particles;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;

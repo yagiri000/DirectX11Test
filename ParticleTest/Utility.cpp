@@ -1,12 +1,15 @@
 #include "pch.h"
 #include "Utility.h"
+#include <DirectXMath.h>
 
-namespace Utility {
-	
+namespace Utility
+{
+
 	Transform CameraTransform;
 
 	// 毎フレーム呼ぶ
-	void SetCameraTransform(const Transform& t){
+	void SetCameraTransform(const Transform& t)
+	{
 		CameraTransform = t;
 	}
 
@@ -19,4 +22,16 @@ namespace Utility {
 	{
 		return std::min(std::max(value, min), max);
 	}
+
+	Quaternion LookRotation(const Vector3 & dir)
+	{
+		XMMATRIX view = XMMatrixLookToRH(XMVectorZero(), XMVectorSet(dir.x, dir.y, dir.z, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+		XMVECTOR quaternion = XMQuaternionRotationMatrix(view);
+		// ビュー行列なのでInverseする
+		quaternion = XMQuaternionInverse(quaternion);
+		return Quaternion(quaternion);
+	}
+
+
+	std::function<void(const Transform& trans)> DrawPlane;
 }

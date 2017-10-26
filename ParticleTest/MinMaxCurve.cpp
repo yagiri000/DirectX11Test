@@ -26,9 +26,6 @@ MinMaxCurve::MinMaxCurve(float start, float end, const std::function<float(float
 {
 }
 
-MinMaxCurve::~MinMaxCurve()
-{
-}
 
 float MinMaxCurve::Get(float rate) const
 {
@@ -37,7 +34,10 @@ float MinMaxCurve::Get(float rate) const
 }
 
 
-MinMaxCurveRotation::MinMaxCurveRotation()
+MinMaxCurveRotation::MinMaxCurveRotation() :
+	m_start(),
+	m_end(),
+	m_easing(Easing::Linear)
 {
 }
 
