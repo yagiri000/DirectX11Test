@@ -3,20 +3,19 @@
 
 using namespace DirectX::SimpleMath;
 
-Transform::Transform():
+Transform::Transform() :
 	m_position(),
 	m_scale(),
 	m_rotation()
 {
 }
 
-Transform::Transform(const Vector3 & position_, const Vector3 & scale_, const Quaternion & rotation_):
+Transform::Transform(const Vector3 & position_, const Vector3 & scale_, const Quaternion & rotation_) :
 	m_position(position_),
 	m_scale(scale_),
 	m_rotation(rotation_)
 {
 }
-
 
 Transform::~Transform()
 {

@@ -26,7 +26,7 @@ void Particle::Update(float deltaTime)
 	m_elapsedTime += deltaTime;
 
 	// 位置更新
-	m_velocity += m_gravity;
+	m_velocity += m_gravity * deltaTime;
 	m_position += m_velocity * deltaTime;
 
 	// 
@@ -35,10 +35,10 @@ void Particle::Update(float deltaTime)
 void Particle::Draw() const
 {
 	// TODO : 前方を向くようにする
-	Quaternion forward = Utility::GetCameraTransform().m_rotation;
+	Quaternion rotation = Utility::GetCameraTransform().m_rotation;
 
 	float rate = GetTimeRate();
-	Transform transform(m_position, (Vector3)m_scaleCurve.Get(rate), forward);
+	Transform transform(m_position, (Vector3)m_scaleCurve.Get(rate), rotation);
 
 	Utility::DrawPlane(transform);
 }

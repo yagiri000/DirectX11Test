@@ -23,6 +23,7 @@ namespace Utility
 		return std::min(std::max(value, min), max);
 	}
 
+	// TODO : ê≥ÇµÇ¢Ç©åüèÿ
 	Quaternion LookRotation(const Vector3 & dir)
 	{
 		XMMATRIX view = XMMatrixLookToRH(XMVectorZero(), XMVectorSet(dir.x, dir.y, dir.z, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
