@@ -9,8 +9,9 @@ public:
 	Vector3 m_position;
 	Vector3 m_velocity;
 	Vector3 m_gravity;
-	MinMaxCurve4 m_size;
-	MinMaxCurveRotation m_rotation;
+	MinMaxCurve4 m_scaleCurve;
+	MinMaxCurveRotation m_rotationCurve;
+	MinMaxCurve4 m_colorCurve;
 
 	float m_lifetime;
 	float m_elapsedTime;
@@ -25,6 +26,7 @@ public:
 	void Draw() const;
 
 	Particle();
+	Particle(const Vector3& position, const Vector3& velocity, const Vector3& gravity, const MinMaxCurve4& scaleCurve, const MinMaxCurveRotation& rotationCurve, const MinMaxCurve4& colorCurve, float lifetime);
 	~Particle();
 };
 

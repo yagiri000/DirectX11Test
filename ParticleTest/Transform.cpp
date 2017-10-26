@@ -10,7 +10,7 @@ Transform::Transform():
 {
 }
 
-Transform::Transform(const Vector3 & position_, const Vector3 & scale_, const Vector3 & rotation_):
+Transform::Transform(const Vector3 & position_, const Vector3 & scale_, const Quaternion & rotation_):
 	m_position(position_),
 	m_scale(scale_),
 	m_rotation(rotation_)

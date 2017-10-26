@@ -15,6 +15,8 @@
     <ClInclude Include="MinMaxCurve.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Easing.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="Mesh.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -25,6 +27,8 @@
     <ClCompile Include="MinMaxCurve.cpp" />
     <ClCompile Include="Utility.cpp" />
     <ClCompile Include="Easing.cpp" />
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="Mesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

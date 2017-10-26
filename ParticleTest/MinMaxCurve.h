@@ -6,6 +6,9 @@
 
 using namespace DirectX::SimpleMath;
 
+// FIXME : テンプレート化を検討
+// FIXME : クラス名を検討
+
 class MinMaxCurve
 {
 public:
@@ -13,11 +16,11 @@ public:
 	float m_end;
 	std::function<float(float, float, float)> m_easing;
 
-	float Get(float rate);
 	MinMaxCurve();
 	MinMaxCurve(float min, float max);
 	MinMaxCurve(float min, float max, const std::function<float(float, float, float)>& easing);
 	~MinMaxCurve();
+	float Get(float rate) const;
 };
 
 
@@ -28,11 +31,10 @@ public:
 	Quaternion m_end;
 	std::function<float(float, float, float)> m_easing;
 
-	float Get(float rate);
 	MinMaxCurveRotation();
-	MinMaxCurveRotation(float min, float max);
-	MinMaxCurveRotation(float min, float max, const std::function<float(float, float, float)>& easing);
-	~MinMaxCurveRotation();
+	MinMaxCurveRotation(const Quaternion& min, const Quaternion& max);
+	MinMaxCurveRotation(const Quaternion& min, const Quaternion& max, const std::function<float(float, float, float)>& easing);
+	Quaternion Get(float rate) const;
 };
 
 
@@ -45,6 +47,7 @@ public:
 	MinMaxCurve m_c2;
 	MinMaxCurve m_c3;
 
-	Vector4 Get(float rate);
+	MinMaxCurve4();
 	MinMaxCurve4(const MinMaxCurve& c0, const MinMaxCurve& c1, const MinMaxCurve& c2, const MinMaxCurve& c3);
+	Vector4 Get(float rate) const;
 };

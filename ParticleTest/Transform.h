@@ -11,7 +11,7 @@ public:
 	Vector3 m_scale;
 	Quaternion m_rotation;
 	Transform();
-	Transform(const Vector3& position_, const Vector3& scale_, const Vector3& rotation_);
+	Transform(const Vector3& position_, const Vector3& scale_, const Quaternion& rotation_);
 	~Transform();
 
 	// 位置・拡大率・回転角を結合した行列を返す
