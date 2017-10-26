@@ -73,8 +73,51 @@ void Game::Render()
 
     // TODO: Add your rendering code here.
     // Render a triangle
-	m_d3dContext.Get()->VSSetShader(m_vertexShader, NULL, 0);
-	m_d3dContext.Get()->PSSetShader(m_pixelShader, NULL, 0);
+
+	// 行列計算
+
+	XMMATRIX mWorld;
+	XMMATRIX mView;
+	XMMATRIX mProj;
+	//ワールドトランスフォーム（絶対座標変換）
+	float elapsed = m_timer.GetFrameCount() / 60.0f;
+	mWorld = XMMatrixRotationY(elapsed);
+
+	// ビュートランスフォーム（視点座標変換）
+	XMVECTOR vEyePt = XMVectorSet(0.0f, 1.0f, -2.0f, 1.0f); //カメラ（視点）位置
+	XMVECTOR vLookatPt = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);//注視位置
+	XMVECTOR vUpVec = XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f);//上方位置
+	mView = XMMatrixLookAtLH(vEyePt, vLookatPt, vUpVec);
+
+	// プロジェクショントランスフォーム（射影変換）
+	int width, height;
+	Game::GetDefaultSize(width, height);
+	mProj = XMMatrixPerspectiveFovLH(XM_PI / 4, (float)width / (float)height, 0.1f, 110.0f);
+
+	// 使用シェーダー登録
+	m_d3dContext.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_d3dContext.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+
+	// コンスタントバッファーに各種データを渡す
+	D3D11_MAPPED_SUBRESOURCE pData;
+	SIMPLESHADER_CONSTANT_BUFFER cb;
+	if (SUCCEEDED(m_d3dContext->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData)))
+	{
+		//ワールド、カメラ、射影行列を渡す
+		XMMATRIX m = mWorld*mView*mProj;
+		m = XMMatrixTranspose(m);
+		cb.mWVP = m;
+
+		memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+		m_d3dContext->Unmap(m_constantBuffer.Get(), 0);
+	}
+
+
+	//このコンスタントバッファーを、どのシェーダーで使うかを指定
+	m_d3dContext->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+	m_d3dContext->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+
+
 	m_d3dContext.Get()->Draw(3, 0);
 
     Present();
@@ -92,6 +135,16 @@ void Game::Clear()
     // Set the viewport.
     CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(m_outputWidth), static_cast<float>(m_outputHeight));
     m_d3dContext->RSSetViewports(1, &viewport);
+
+	//ラスタライズ設定
+	D3D11_RASTERIZER_DESC rdc;
+	ZeroMemory(&rdc, sizeof(rdc));
+	rdc.CullMode = D3D11_CULL_NONE;
+	rdc.FillMode = D3D11_FILL_SOLID;
+	rdc.FrontCounterClockwise = TRUE;
+
+	m_d3dDevice->CreateRasterizerState(&rdc, m_rasterizerState.GetAddressOf());
+	m_d3dContext->RSSetState(m_rasterizerState.Get());
 }
 
 // Presents the back buffer contents to the screen.
@@ -363,7 +416,7 @@ void Game::CreateResources()
 
 	// Create the vertex shader
 	
-	hr = m_d3dDevice.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &m_vertexShader);
+	hr = m_d3dDevice.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, m_vertexShader.GetAddressOf());
 	if (FAILED(hr)) {
 		pVSBlob->Release();
 		return DX::ThrowIfFailed(hr);
@@ -378,13 +431,13 @@ void Game::CreateResources()
 
 	// Create the input layout
 	hr = m_d3dDevice.Get()->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
-		pVSBlob->GetBufferSize(), &m_vertexLayout);
+		pVSBlob->GetBufferSize(), m_vertexLayout.GetAddressOf());
 	pVSBlob->Release();
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set the input layout
-	m_d3dContext.Get()->IASetInputLayout(m_vertexLayout);
+	m_d3dContext.Get()->IASetInputLayout(m_vertexLayout.Get());
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = NULL;
@@ -396,7 +449,7 @@ void Game::CreateResources()
 	}
 
 	// Create the pixel shader
-	hr = m_d3dDevice.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &m_pixelShader);
+	hr = m_d3dDevice.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, m_pixelShader.GetAddressOf());
 	pPSBlob->Release();
 	if (FAILED(hr))		
 		return DX::ThrowIfFailed(hr);
@@ -405,9 +458,9 @@ void Game::CreateResources()
 	// Create vertex buffer
 	SimpleVertex vertices[] =
 	{
-		XMFLOAT3(0.0f, 0.5f, 0.5f),
-		XMFLOAT3(0.5f, -0.5f, 0.5f),
-		XMFLOAT3(-0.5f, -0.5f, 0.5f),
+		XMFLOAT3(0.0f, 0.5f, 0.0f),
+		XMFLOAT3(0.5f, -0.5f, 0.0f),
+		XMFLOAT3(-0.5f, -0.5f, 0.0f),
 	};
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
@@ -418,34 +471,55 @@ void Game::CreateResources()
 	D3D11_SUBRESOURCE_DATA InitData;
 	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = vertices;
-	hr = m_d3dDevice.Get()->CreateBuffer(&bd, &InitData, &m_vertexBuffer);
+	hr = m_d3dDevice.Get()->CreateBuffer(&bd, &InitData, m_vertexBuffer.GetAddressOf());
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set vertex buffer
 	UINT stride = sizeof(SimpleVertex);
 	UINT offset = 0;
-	m_d3dContext.Get()->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+	m_d3dContext.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
 	// Set primitive topology
 	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+	// コンスタントバッファー作成　シェーダーに変換行列を渡す用
+
+	//コンスタントバッファー作成　ここでは変換行列渡し用
+	D3D11_BUFFER_DESC cb;
+	cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cb.ByteWidth = sizeof(SIMPLESHADER_CONSTANT_BUFFER);
+	cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cb.MiscFlags = 0;
+	cb.StructureByteStride = 0;
+	cb.Usage = D3D11_USAGE_DYNAMIC;
+
+	{
+		hr = m_d3dDevice.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
+		if (FAILED(hr)) {
+			return DX::ThrowIfFailed(hr);
+		}
+	}
 }
 
 void Game::OnDeviceLost()
 {
     // TODO: Add Direct3D resource cleanup here.
 
+	m_constantBuffer.Reset();
+	m_vertexShader.Reset();
+	m_pixelShader.Reset();
+	m_vertexLayout.Reset();
+	m_vertexBuffer.Reset();
+
+	m_rasterizerState.Reset();
     m_depthStencilView.Reset();
     m_renderTargetView.Reset();
     m_swapChain.Reset();
+
     m_d3dContext.Reset();
     m_d3dDevice.Reset();
 
-	if (m_vertexBuffer) m_vertexBuffer->Release();
-	if (m_vertexLayout) m_vertexLayout->Release();
-	if (m_vertexShader) m_vertexShader->Release();
-	if (m_pixelShader) m_pixelShader->Release();
 
     CreateDevice();
 

@@ -6,6 +6,8 @@
 
 #include "StepTimer.h"
 
+using namespace DirectX;
+using Microsoft::WRL::ComPtr;
 
 //--------------------------------------------------------------------------------------
 // Structures
@@ -15,12 +17,16 @@ struct SimpleVertex
 	DirectX::XMFLOAT3 Pos;
 };
 
+//Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
+struct SIMPLESHADER_CONSTANT_BUFFER
+{
+	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
+};
+
 // 三角形ポリゴンを描画する例
 class Game
 {
 public:
-
-
     Game();
 
     // Initialization and management
@@ -60,17 +66,19 @@ private:
     int                                             m_outputHeight;
 
     D3D_FEATURE_LEVEL                               m_featureLevel;
-    Microsoft::WRL::ComPtr<ID3D11Device1>           m_d3dDevice;
-    Microsoft::WRL::ComPtr<ID3D11DeviceContext1>    m_d3dContext;
+    ComPtr<ID3D11Device1>           m_d3dDevice;
+    ComPtr<ID3D11DeviceContext1>    m_d3dContext;
 
-    Microsoft::WRL::ComPtr<IDXGISwapChain1>         m_swapChain;
-    Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
+    ComPtr<IDXGISwapChain1>         m_swapChain;
+    ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
+    ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
+	ComPtr<ID3D11RasterizerState>	m_rasterizerState;
 
-	ID3D11VertexShader*     m_vertexShader = NULL;
-	ID3D11PixelShader*      m_pixelShader = NULL;
-	ID3D11InputLayout*      m_vertexLayout = NULL;
-	ID3D11Buffer*           m_vertexBuffer = NULL;
+	ComPtr<ID3D11VertexShader>		m_vertexShader;
+	ComPtr<ID3D11PixelShader>		m_pixelShader;
+	ComPtr<ID3D11InputLayout>		m_vertexLayout;
+	ComPtr<ID3D11Buffer>			m_vertexBuffer;
+	ComPtr<ID3D11Buffer>			m_constantBuffer;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
