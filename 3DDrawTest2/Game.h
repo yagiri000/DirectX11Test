@@ -5,8 +5,6 @@
 #pragma once
 
 #include "StepTimer.h"
-#include <vector>
-#include "Particle.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -25,7 +23,7 @@ struct SIMPLESHADER_CONSTANT_BUFFER
 	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
 };
 
-// 三角形ポリゴンを描画する例
+// 平面が原点を常に見るようにするテスト
 class Game
 {
 public:
@@ -81,8 +79,6 @@ private:
 	ComPtr<ID3D11InputLayout>		m_vertexLayout;
 	ComPtr<ID3D11Buffer>			m_vertexBuffer;
 	ComPtr<ID3D11Buffer>			m_constantBuffer;
-
-	std::vector<Particle>			m_particles;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;

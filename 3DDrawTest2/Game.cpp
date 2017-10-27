@@ -6,12 +6,10 @@
 #include "Game.h"
 #include <d3dcompiler.h>
 #include "Utility.h"
-#include "Particle.h"
 #include "Random.h"
 
 extern void ExitGame();
 
-using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
@@ -38,76 +36,9 @@ void Game::Initialize(HWND window, int width, int height)
 	// TODO : 修正
 	// 現在グローバル領域の関数にラムダを突っ込み，Drawする部分でそれを呼んでいる
 	Utility::DrawPlane = [&](const Transform& trans) {
-
-		// 行列計算
-		Matrix mWorld;
-		Matrix mView;
-		Matrix mProj;
-
-		// ビュートランスフォーム（視点座標変換）
-		float elapsed = m_timer.GetFrameCount() / 60.0f;
-
-		Vector3 a(0.0f, 1.0f, -2.0f);
-		a = Vector3::Transform(a, Matrix::CreateFromQuaternion(Quaternion::CreateFromYawPitchRoll(elapsed, 0.0f, 0.0f)));
-		Vector3 eye(a.x, a.y, a.z); //カメラ（視点）位置
-		Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
-		Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
-		mView = Matrix::CreateLookAt(eye, lookat, up);
-
-		Utility::SetCameraTransform(Transform(Vector3(eye), Vector3::One, Quaternion::CreateFromRotationMatrix(mView) ));
-
-		//ワールドトランスフォーム（絶対座標変換）
-		mWorld = trans.GetMatrix();
-
-		// プロジェクショントランスフォーム（射影変換）
-		int width, height;
-		Game::GetDefaultSize(width, height);
-		mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
-
-		// 使用シェーダー登録
-		m_d3dContext.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-		m_d3dContext.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
-
-		// コンスタントバッファーに各種データを渡す
-		D3D11_MAPPED_SUBRESOURCE pData;
-		SIMPLESHADER_CONSTANT_BUFFER cb;
-		if (SUCCEEDED(m_d3dContext->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData)))
-		{
-			//ワールド、カメラ、射影行列を渡す
-			XMMATRIX m = mWorld*mView*mProj;
-			m = XMMatrixTranspose(m);
-			cb.mWVP = m;
-
-			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-			m_d3dContext->Unmap(m_constantBuffer.Get(), 0);
-		}
-
-		//このコンスタントバッファーを、どのシェーダーで使うかを指定
-		m_d3dContext->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-		m_d3dContext->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
-
-		m_d3dContext.Get()->Draw(4, 0);
 	};
 
 
-	for (size_t i = 0; i < 10; i++) {
-		m_particles.emplace_back(
-			Particle(
-				Vector3::Zero,
-				Random::OnSphere(),
-				Vector3::Zero,
-				MinMaxCurve4(
-					MinMaxCurve(0.3f, 0.0f),
-					MinMaxCurve(0.3f, 0.0f),
-					MinMaxCurve(0.3f, 0.0f),
-					MinMaxCurve(0.3f, 1.0f)
-				),
-				MinMaxCurveRotation(),
-				MinMaxCurve4(),
-				1.0f
-			)
-		);
-	}
     // TODO: Change the timer settings if you want something other than the default variable timestep mode.
     // e.g. for 60 FPS fixed timestep update logic, call:
     /*
@@ -134,32 +65,6 @@ void Game::Update(DX::StepTimer const& timer)
 
 	static bool pre = false;
 
-	if (GetKeyState('Z') & 0x80 && !pre) {
-		for (size_t i = 0; i < 30; i++) {
-
-			m_particles.emplace_back(
-				Particle(
-					Vector3::Zero,
-					Random::OnSphere() * Random::Range(1.0f, 3.0f),
-					Vector3::Zero,
-					MinMaxCurve4(
-						MinMaxCurve(0.15f, 0.0f),
-						MinMaxCurve(0.15f, 0.0f),
-						MinMaxCurve(0.15f, 0.0f),
-						MinMaxCurve(0.15f, 1.0f)
-					),
-					MinMaxCurveRotation(),
-					MinMaxCurve4(),
-					Random::Range(0.5f, 3.0f)
-				)
-			);
-		}
-	}
-	pre = GetKeyState('Z') & 0x80;
-
-	for (auto&& i : m_particles) {
-		i.Update(1.0f / 60.0f);
-	}
 
     // TODO: Add your game logic here.
     elapsedTime;
@@ -178,10 +83,76 @@ void Game::Render()
 
     // TODO: Add your rendering code here.
     // Render a triangle
+	float elapsed = m_timer.GetFrameCount() / 60.0f;
 
-	for (auto&& i : m_particles) {
-		i.Draw();
+	static Vector3 pos(1.0f, 0.0f, -1.0f);
+	const float Speed = 0.016f;
+
+	if (GetKeyState('W') & 0x80) {
+		pos += Speed * Vector3::Forward;
 	}
+	if (GetKeyState('A') & 0x80) {
+		pos += Speed * Vector3::Left;
+	}
+	if (GetKeyState('S') & 0x80) {
+		pos += Speed * Vector3::Backward;
+	}
+	if (GetKeyState('D') & 0x80) {
+		pos += Speed * Vector3::Right;
+	}
+	if (GetKeyState('E') & 0x80) {
+		pos += Speed * Vector3::Up;
+	}
+	if (GetKeyState('Q') & 0x80) {
+		pos += Speed * Vector3::Down;
+	}
+	
+
+	// 行列計算
+	Matrix mWorld;
+	Matrix mView;
+	Matrix mProj;
+
+	// ビュートランスフォーム（視点座標変換）
+
+	Vector3 eye(0.0f, 1.0f, 2.0f); //カメラ（視点）位置
+	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
+	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
+	mView = Matrix::CreateLookAt(eye, lookat, up);
+
+	Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
+	Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
+	//ワールドトランスフォーム（絶対座標変換）
+	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix::CreateFromQuaternion(q) * Matrix::CreateTranslation(pos);
+
+	// プロジェクショントランスフォーム（射影変換）
+	int width, height;
+	Game::GetDefaultSize(width, height);
+	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
+
+	// 使用シェーダー登録
+	m_d3dContext.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_d3dContext.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+
+	// コンスタントバッファーに各種データを渡す
+	D3D11_MAPPED_SUBRESOURCE pData;
+	SIMPLESHADER_CONSTANT_BUFFER cb;
+	if (SUCCEEDED(m_d3dContext->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+		//ワールド、カメラ、射影行列を渡す
+		XMMATRIX m = mWorld*mView*mProj;
+		m = XMMatrixTranspose(m);
+		
+		cb.mWVP = m;
+
+		memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+		m_d3dContext->Unmap(m_constantBuffer.Get(), 0);
+	}
+
+	//このコンスタントバッファーを、どのシェーダーで使うかを指定
+	m_d3dContext->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+	m_d3dContext->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+
+	m_d3dContext.Get()->Draw(4, 0);
 
     Present();
 }
@@ -190,7 +161,7 @@ void Game::Render()
 void Game::Clear()
 {
     // Clear the views.
-    m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
+    m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Color(0.9f, 0.9f, 0.9f));
     m_d3dContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     m_d3dContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
