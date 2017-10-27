@@ -68,8 +68,8 @@ private:
     int                                             m_outputHeight;
 
     D3D_FEATURE_LEVEL                               m_featureLevel;
-    ComPtr<ID3D11Device1>           m_d3dDevice;
-    ComPtr<ID3D11DeviceContext1>    m_d3dContext;
+    ComPtr<ID3D11Device1>           m_device;
+    ComPtr<ID3D11DeviceContext1>    m_context;
 
     ComPtr<IDXGISwapChain1>         m_swapChain;
     ComPtr<ID3D11RenderTargetView>  m_renderTargetView;

@@ -5,16 +5,15 @@
 #pragma once
 
 #include "StepTimer.h"
+#include "Model.h"
+#include "Effects.h"
+#include "CommonStates.h"
 
-
-// png‰æ‘œ‚ð•`‰æ‚·‚é—á
+// A basic game implementation that creates a D3D11 device and
+// provides a game loop.
 class Game
 {
 public:
-	
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_texture;
-	std::unique_ptr<DirectX::SpriteBatch> m_spriteBatch;
-	DirectX::SimpleMath::Vector2 m_pos;
 
     Game();
 
@@ -53,12 +52,20 @@ private:
     int                                             m_outputHeight;
 
     D3D_FEATURE_LEVEL                               m_featureLevel;
-    Microsoft::WRL::ComPtr<ID3D11Device1>           m_device;
-    Microsoft::WRL::ComPtr<ID3D11DeviceContext1>    m_context;
+    Microsoft::WRL::ComPtr<ID3D11Device1>           m_d3dDevice;
+    Microsoft::WRL::ComPtr<ID3D11DeviceContext1>    m_d3dContext;
 
     Microsoft::WRL::ComPtr<IDXGISwapChain1>         m_swapChain;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
+
+	DirectX::SimpleMath::Matrix m_world;
+	DirectX::SimpleMath::Matrix m_view;
+	DirectX::SimpleMath::Matrix m_proj;
+
+	std::unique_ptr<DirectX::CommonStates> m_states;
+	std::unique_ptr<DirectX::IEffectFactory> m_fxFactory;
+	std::unique_ptr<DirectX::Model> m_model;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;

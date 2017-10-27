@@ -159,13 +159,13 @@ void Game::Render()
 	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
 	// 使用シェーダー登録
-	m_d3dContext.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-	m_d3dContext.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
 
 	// コンスタントバッファーに各種データを渡す
 	D3D11_MAPPED_SUBRESOURCE pData;
 	SIMPLESHADER_CONSTANT_BUFFER cb;
-	if (SUCCEEDED(m_d3dContext->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+	if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
 		//ワールド、カメラ、射影行列を渡す
 		XMMATRIX m = mWorld*mView*mProj;
 		m = XMMatrixTranspose(m);
@@ -173,14 +173,14 @@ void Game::Render()
 		cb.mWVP = m;
 
 		memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-		m_d3dContext->Unmap(m_constantBuffer.Get(), 0);
+		m_context->Unmap(m_constantBuffer.Get(), 0);
 	}
 
 	//このコンスタントバッファーを、どのシェーダーで使うかを指定
-	m_d3dContext->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-	m_d3dContext->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+	m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+	m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
 
-	m_d3dContext.Get()->Draw(4, 0);
+	m_context.Get()->Draw(4, 0);
 
     Present();
 }
@@ -189,14 +189,14 @@ void Game::Render()
 void Game::Clear()
 {
     // Clear the views.
-    m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Color(0.1f, 0.1f, 0.1f));
-    m_d3dContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+    m_context->ClearRenderTargetView(m_renderTargetView.Get(), Color(0.1f, 0.1f, 0.1f));
+    m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-    m_d3dContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+    m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 
     // Set the viewport.
     CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(m_outputWidth), static_cast<float>(m_outputHeight));
-    m_d3dContext->RSSetViewports(1, &viewport);
+    m_context->RSSetViewports(1, &viewport);
 
 	//ラスタライズ設定
 	D3D11_RASTERIZER_DESC rdc;
@@ -205,8 +205,8 @@ void Game::Clear()
 	rdc.FillMode = D3D11_FILL_SOLID;
 	rdc.FrontCounterClockwise = TRUE;
 
-	m_d3dDevice->CreateRasterizerState(&rdc, m_rasterizerState.GetAddressOf());
-	m_d3dContext->RSSetState(m_rasterizerState.Get());
+	m_device->CreateRasterizerState(&rdc, m_rasterizerState.GetAddressOf());
+	m_context->RSSetState(m_rasterizerState.Get());
 }
 
 // Presents the back buffer contents to the screen.
@@ -330,8 +330,8 @@ void Game::CreateDevice()
     }
 #endif
 
-    DX::ThrowIfFailed(device.As(&m_d3dDevice));
-    DX::ThrowIfFailed(context.As(&m_d3dContext));
+    DX::ThrowIfFailed(device.As(&m_device));
+    DX::ThrowIfFailed(context.As(&m_context));
 
     // TODO: Initialize device dependent objects here (independent of window size).
 
@@ -344,10 +344,10 @@ void Game::CreateResources()
 {
     // Clear the previous window size specific context.
     ID3D11RenderTargetView* nullViews [] = { nullptr };
-    m_d3dContext->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
+    m_context->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
     m_renderTargetView.Reset();
     m_depthStencilView.Reset();
-    m_d3dContext->Flush();
+    m_context->Flush();
 
     UINT backBufferWidth = static_cast<UINT>(m_outputWidth);
     UINT backBufferHeight = static_cast<UINT>(m_outputHeight);
@@ -378,7 +378,7 @@ void Game::CreateResources()
     {
         // First, retrieve the underlying DXGI Device from the D3D Device.
         ComPtr<IDXGIDevice1> dxgiDevice;
-        DX::ThrowIfFailed(m_d3dDevice.As(&dxgiDevice));
+        DX::ThrowIfFailed(m_device.As(&dxgiDevice));
 
         // Identify the physical adapter (GPU or card) this device is running on.
         ComPtr<IDXGIAdapter> dxgiAdapter;
@@ -403,7 +403,7 @@ void Game::CreateResources()
 
         // Create a SwapChain from a Win32 window.
         DX::ThrowIfFailed(dxgiFactory->CreateSwapChainForHwnd(
-            m_d3dDevice.Get(),
+            m_device.Get(),
             m_window,
             &swapChainDesc,
             &fsSwapChainDesc,
@@ -420,17 +420,17 @@ void Game::CreateResources()
     DX::ThrowIfFailed(m_swapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf())));
 
     // Create a view interface on the rendertarget to use on bind.
-    DX::ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), nullptr, m_renderTargetView.ReleaseAndGetAddressOf()));
+    DX::ThrowIfFailed(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_renderTargetView.ReleaseAndGetAddressOf()));
 
     // Allocate a 2-D surface as the depth/stencil buffer and
     // create a DepthStencil view on this surface to use on bind.
     CD3D11_TEXTURE2D_DESC depthStencilDesc(depthBufferFormat, backBufferWidth, backBufferHeight, 1, 1, D3D11_BIND_DEPTH_STENCIL);
 
     ComPtr<ID3D11Texture2D> depthStencil;
-    DX::ThrowIfFailed(m_d3dDevice->CreateTexture2D(&depthStencilDesc, nullptr, depthStencil.GetAddressOf()));
+    DX::ThrowIfFailed(m_device->CreateTexture2D(&depthStencilDesc, nullptr, depthStencil.GetAddressOf()));
 
     CD3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc(D3D11_DSV_DIMENSION_TEXTURE2D);
-    DX::ThrowIfFailed(m_d3dDevice->CreateDepthStencilView(depthStencil.Get(), &depthStencilViewDesc, m_depthStencilView.ReleaseAndGetAddressOf()));
+    DX::ThrowIfFailed(m_device->CreateDepthStencilView(depthStencil.Get(), &depthStencilViewDesc, m_depthStencilView.ReleaseAndGetAddressOf()));
 
     // TODO: Initialize windows-size dependent objects here.
 	// 以下，追加した関数群
@@ -447,13 +447,13 @@ void Game::CreateResources()
 	// 頂点シェーダ作成
 	//  メモ：シェーダーをデバッグ情報ありでコンパイルすると
 	//　　　　ここでエラー発生　CREATEVERTEXSHADER_INVALIDSHADERBYTECODE
-	hr = m_d3dDevice.Get()->CreateVertexShader(vscode.get(), vscode.size(), NULL, m_vertexShader.GetAddressOf());
+	hr = m_device.Get()->CreateVertexShader(vscode.get(), vscode.size(), NULL, m_vertexShader.GetAddressOf());
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
 
 	// ピクセルシェーダ作成
-	hr = m_d3dDevice.Get()->CreatePixelShader(pscode.get(), pscode.size(), NULL, m_pixelShader.GetAddressOf());
+	hr = m_device.Get()->CreatePixelShader(pscode.get(), pscode.size(), NULL, m_pixelShader.GetAddressOf());
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
@@ -465,14 +465,14 @@ void Game::CreateResources()
 	UINT elem_num = ARRAYSIZE(layout);
 
 	// 入力レイアウト作成
-	hr = m_d3dDevice.Get()->CreateInputLayout(layout, elem_num, vscode.get(),
+	hr = m_device.Get()->CreateInputLayout(layout, elem_num, vscode.get(),
 		vscode.size(), m_vertexLayout.GetAddressOf());
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
 
 	// Set the input layout
-	m_d3dContext.Get()->IASetInputLayout(m_vertexLayout.Get());
+	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
 
 
 
@@ -493,17 +493,17 @@ void Game::CreateResources()
 	D3D11_SUBRESOURCE_DATA InitData;
 	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = vertices;
-	hr = m_d3dDevice.Get()->CreateBuffer(&bd, &InitData, m_vertexBuffer.GetAddressOf());
+	hr = m_device.Get()->CreateBuffer(&bd, &InitData, m_vertexBuffer.GetAddressOf());
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set vertex buffer
 	UINT stride = sizeof(SimpleVertex);
 	UINT offset = 0;
-	m_d3dContext.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
 	// Set primitive topology
-	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	// コンスタントバッファー作成　シェーダーに変換行列を渡す用
 
@@ -517,7 +517,7 @@ void Game::CreateResources()
 	cb.Usage = D3D11_USAGE_DYNAMIC;
 
 	{
-		hr = m_d3dDevice.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
+		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
 		if (FAILED(hr)) {
 			return DX::ThrowIfFailed(hr);
 		}
@@ -539,8 +539,8 @@ void Game::OnDeviceLost()
     m_renderTargetView.Reset();
     m_swapChain.Reset();
 
-    m_d3dContext.Reset();
-    m_d3dDevice.Reset();
+    m_context.Reset();
+    m_device.Reset();
 
 
     CreateDevice();

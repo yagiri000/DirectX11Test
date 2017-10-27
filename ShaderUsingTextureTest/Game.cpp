@@ -5,12 +5,42 @@
 #include "pch.h"
 #include "Game.h"
 #include <d3dcompiler.h>
+#include <algorithm>
+#include <memory>
+#include <fstream>
+#include "Utility.h"
+#include "Random.h"
 
 extern void ExitGame();
 
-using namespace DirectX;
+using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
+
+
+struct BinFile
+{
+	BinFile(const wchar_t* fpath)
+	{
+		std::ifstream binfile(fpath, std::ios::in | std::ios::binary);
+
+		if (binfile.is_open()) {
+			int fsize = static_cast<int>(binfile.seekg(0, std::ios::end).tellg());
+			binfile.seekg(0, std::ios::beg);
+			std::unique_ptr<char> code(new char[fsize]);
+			binfile.read(code.get(), fsize);
+			nSize = fsize;
+			Bin = std::move(code);
+		}
+
+	}
+
+	const void* get() const { return Bin.get(); }
+	int size() const { return nSize; }
+private:
+	int nSize = 0;
+	std::unique_ptr<char> Bin;
+};
 
 Game::Game() :
 	m_window(nullptr),
@@ -31,10 +61,6 @@ void Game::Initialize(HWND window, int width, int height)
 
 	CreateResources();
 
-	// Input系のクラスを作成
-	m_keyboard = std::make_unique<Keyboard>();
-	m_mouse = std::make_unique<Mouse>();
-	m_mouse->SetWindow(window);
 
 	// TODO: Change the timer settings if you want something other than the default variable timestep mode.
 	// e.g. for 60 FPS fixed timestep update logic, call:
@@ -59,18 +85,11 @@ void Game::Update(DX::StepTimer const& timer)
 {
 	float elapsedTime = float(timer.GetElapsedSeconds());
 
+	static bool pre = false;
+
+
 	// TODO: Add your game logic here.
-
-	// Input update
-	auto kb = m_keyboard->GetState();
-	if (kb.Escape)
-		PostQuitMessage(0);
-
-
-	m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
-	auto mouse = m_mouse->GetState();
-	Vector2 position = Vector2(float(mouse.x), float(mouse.y));
-	m_pos = position;
+	elapsedTime;
 }
 
 // Draws the scene.
@@ -81,23 +100,113 @@ void Game::Render()
 		return;
 	}
 
-
 	Clear();
 
+	// TODO: Add your rendering code here.
+	// Render a triangle
+	float elapsed = m_timer.GetFrameCount() / 60.0f;
 
-	// Render a sprite
-	m_spriteBatch->Begin(SpriteSortMode_Deferred, m_states->NonPremultiplied());
-	m_spriteBatch->Draw(m_texture.Get(), m_pos, nullptr, Colors::White, 0.f, Vector2(32.0f, 32.0f));
-	m_spriteBatch->End();
+	static Vector3 pos(0.2f, 0.0f, -0.2f);
+	const float Speed = 0.03f;
+
+	if (GetKeyState('W') & 0x80) {
+		pos += Speed * Vector3::Forward;
+	}
+	if (GetKeyState('A') & 0x80) {
+		pos += Speed * Vector3::Left;
+	}
+	if (GetKeyState('S') & 0x80) {
+		pos += Speed * Vector3::Backward;
+	}
+	if (GetKeyState('D') & 0x80) {
+		pos += Speed * Vector3::Right;
+	}
+	if (GetKeyState('E') & 0x80) {
+		pos += Speed * Vector3::Up;
+	}
+	if (GetKeyState('Q') & 0x80) {
+		pos += Speed * Vector3::Down;
+	}
+
+
+	for (int mode = 0; mode < 2; mode++) {
+		if (mode == 0) {
+			m_context->RSSetState(m_rasterizerStateBack.Get());
+		}
+		else {
+			m_context->RSSetState(m_rasterizerState.Get());
+		}
+
+		for (int i = 0; i < 5; i++) {
+
+			// 行列計算
+			Matrix mWorld;
+			Matrix mView;
+			Matrix mProj;
+
+			// ビュートランスフォーム（視点座標変換）
+
+			Vector3 eye(0.0f, 1.0f, 3.0f); //カメラ（視点）位置
+			Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
+			Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
+			mView = Matrix::CreateLookAt(eye, lookat, up);
+
+			Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
+			//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
+			//ワールドトランスフォーム（絶対座標変換）
+			mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix()
+				* Matrix::CreateTranslation(pos + Vector3(0.3f * i, 0.3f * i, -0.3f * i));
+
+			// プロジェクショントランスフォーム（射影変換）
+			int width, height;
+			Game::GetDefaultSize(width, height);
+			mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
+
+			// 使用シェーダー登録
+			m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+			m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+
+			// サンプラー
+			UINT smp_slot = 0;
+			ID3D11SamplerState* smp[1] = { pSampler.Get() };
+			m_context->PSSetSamplers(smp_slot, 1, smp);
+
+			// シェーダーリソースビュー（テクスチャ）
+			UINT srv_slot = 0;
+			ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
+			m_context->PSSetShaderResources(srv_slot, 1, srv);
+
+			// コンスタントバッファーに各種データを渡す
+			D3D11_MAPPED_SUBRESOURCE pData;
+			SIMPLESHADER_CONSTANT_BUFFER cb;
+			if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+				//ワールド、カメラ、射影行列を渡す
+				XMMATRIX m = mWorld*mView*mProj;
+				m = XMMatrixTranspose(m);
+
+				cb.mW = mWorld.Transpose();
+				cb.mWVP = m;
+
+				memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+				m_context->Unmap(m_constantBuffer.Get(), 0);
+			}
+
+			//このコンスタントバッファーを、どのシェーダーで使うかを指定
+			m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+			m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+
+			m_context.Get()->Draw(4, 0);
+		}
+	}
 
 	Present();
-
 }
 
 // Helper method to clear the back buffers.
 void Game::Clear()
 {
 	// Clear the views.
+	// m_context->ClearRenderTargetView(m_renderTargetView.Get(), Color(0.1f, 0.1f, 0.1f));
 	m_context->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
 	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
@@ -106,6 +215,29 @@ void Game::Clear()
 	// Set the viewport.
 	CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(m_outputWidth), static_cast<float>(m_outputHeight));
 	m_context->RSSetViewports(1, &viewport);
+
+	//ラスタライズ設定
+	{
+		D3D11_RASTERIZER_DESC rdc;
+		ZeroMemory(&rdc, sizeof(rdc));
+		rdc.CullMode = D3D11_CULL_FRONT;
+		rdc.FillMode = D3D11_FILL_SOLID;
+		rdc.FrontCounterClockwise = TRUE;
+
+		m_device->CreateRasterizerState(&rdc, m_rasterizerState.GetAddressOf());
+		m_context->RSSetState(m_rasterizerState.Get());
+	}
+	{
+		D3D11_RASTERIZER_DESC rdc;
+		ZeroMemory(&rdc, sizeof(rdc));
+		rdc.CullMode = D3D11_CULL_BACK;
+		rdc.FillMode = D3D11_FILL_SOLID;
+		rdc.FrontCounterClockwise = TRUE;
+
+		m_device->CreateRasterizerState(&rdc, m_rasterizerStateBack.GetAddressOf());
+		m_context->RSSetState(m_rasterizerStateBack.Get());
+	}
+
 }
 
 // Presents the back buffer contents to the screen.
@@ -164,33 +296,6 @@ void Game::GetDefaultSize(int& width, int& height) const
 	// TODO: Change to desired default window size (note minimum size is 320x200).
 	width = 800;
 	height = 600;
-}
-
-HRESULT Game::CompileShaderFromFile(WCHAR * szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob ** ppBlobOut)
-{
-	HRESULT hr = S_OK;
-
-	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-#if defined( DEBUG ) || defined( _DEBUG )
-	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
-	// Setting this flag improves the shader debugging experience, but still allows 
-	// the shaders to be optimized and to run exactly the way they will run in 
-	// the release configuration of this program.
-	dwShaderFlags |= D3DCOMPILE_DEBUG;
-#endif
-
-	ID3DBlob* pErrorBlob;
-	hr = D3DCompileFromFile(szFileName, NULL, NULL, szEntryPoint, szShaderModel,
-		dwShaderFlags, 0, ppBlobOut, &pErrorBlob);
-	if (FAILED(hr)) {
-		if (pErrorBlob != NULL)
-			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-		if (pErrorBlob) pErrorBlob->Release();
-		return hr;
-	}
-	if (pErrorBlob) pErrorBlob->Release();
-
-	return S_OK;
 }
 
 // These are the resources that depend on the device.
@@ -257,20 +362,8 @@ void Game::CreateDevice()
 
 	// TODO: Initialize device dependent objects here (independent of window size).
 
-	// 画像読み込み
-	m_spriteBatch = std::make_unique<SpriteBatch>(m_context.Get());
-	ComPtr<ID3D11Resource> resource;
-	DX::ThrowIfFailed(
-		CreateWICTextureFromFile(m_device.Get(), L"DotRed64.png", resource.GetAddressOf(), m_texture.ReleaseAndGetAddressOf())
-	);
 
-	ComPtr<ID3D11Texture2D> texture;
-	DX::ThrowIfFailed(resource.As(&texture));
 
-	CD3D11_TEXTURE2D_DESC textureDesc;
-	texture->GetDesc(&textureDesc);
-
-	m_states.reset(new CommonStates(m_device.Get()));
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -362,6 +455,30 @@ void Game::CreateResources()
 	CD3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc(D3D11_DSV_DIMENSION_TEXTURE2D);
 	DX::ThrowIfFailed(m_device->CreateDepthStencilView(depthStencil.Get(), &depthStencilViewDesc, m_depthStencilView.ReleaseAndGetAddressOf()));
 
+	// ブレンドステート作成
+	// TODO : 加算にしたつもりだが正しく動作するか検証する
+	{
+		D3D11_BLEND_DESC bd;
+		ZeroMemory(&bd, sizeof(D3D11_BLEND_DESC));
+		bd.IndependentBlendEnable = false;
+		bd.AlphaToCoverageEnable = false;
+		bd.RenderTarget[0].BlendEnable = true;
+		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		bd.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+		if (FAILED(m_device->CreateBlendState(&bd, m_blendState.GetAddressOf()))) {
+			return DX::ThrowIfFailed(E_FAIL);
+		}
+
+		UINT mask = 0xffffffff;
+		m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
+	}
+
 	// TODO: Initialize windows-size dependent objects here.
 	// 以下，追加した関数群
 
@@ -370,67 +487,78 @@ void Game::CreateResources()
 	HRESULT hr;
 
 
-	// Compile the vertex shader
-	ID3DBlob* pVSBlob = NULL;
-	hr = CompileShaderFromFile(L"Tutorial02.fx", "VS", "vs_4_0", &pVSBlob);
+	//シェーダー読み込み
+	BinFile vscode(L"..\\data\\VertexShader.cso");
+	BinFile pscode(L"..\\data\\PixelShader.cso");
+
+	// 頂点シェーダ作成
+	//  メモ：シェーダーをデバッグ情報ありでコンパイルすると
+	//　　　　ここでエラー発生　CREATEVERTEXSHADER_INVALIDSHADERBYTECODE
+	hr = m_device.Get()->CreateVertexShader(vscode.get(), vscode.size(), NULL, m_vertexShader.GetAddressOf());
 	if (FAILED(hr)) {
-		MessageBox(NULL,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
 		return DX::ThrowIfFailed(hr);
 	}
 
-	// Create the vertex shader
-
-	hr = m_device.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, m_vertexShader.GetAddressOf());
+	// ピクセルシェーダ作成
+	hr = m_device.Get()->CreatePixelShader(pscode.get(), pscode.size(), NULL, m_pixelShader.GetAddressOf());
 	if (FAILED(hr)) {
-		pVSBlob->Release();
 		return DX::ThrowIfFailed(hr);
 	}
 
-	// Define the input layout
-	D3D11_INPUT_ELEMENT_DESC layout[] =
-	{
+	// 入力レイアウト定義
+	D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	UINT numElements = ARRAYSIZE(layout);
+	UINT elem_num = ARRAYSIZE(layout);
 
-	// Create the input layout
-	hr = m_device.Get()->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
-		pVSBlob->GetBufferSize(), m_vertexLayout.GetAddressOf());
-	pVSBlob->Release();
-	if (FAILED(hr))
+	// 入力レイアウト作成
+	hr = m_device.Get()->CreateInputLayout(layout, elem_num, vscode.get(),
+		vscode.size(), m_vertexLayout.GetAddressOf());
+	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
+	}
 
 	// Set the input layout
 	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
 
-	// Compile the pixel shader
-	ID3DBlob* pPSBlob = NULL;
-	hr = CompileShaderFromFile(L"Tutorial02.fx", "PS", "ps_4_0", &pPSBlob);
+
+	// テクスチャ作成
+	hr = DirectX::CreateWICTextureFromFile(m_device.Get(), L"image.png", &pTexture, &pShaderResView);
 	if (FAILED(hr)) {
-		MessageBox(NULL,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
 		return DX::ThrowIfFailed(hr);
 	}
 
-	// Create the pixel shader
-	hr = m_device.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, m_pixelShader.GetAddressOf());
-	pPSBlob->Release();
-	if (FAILED(hr))
+	// サンプラー作成
+	D3D11_SAMPLER_DESC sampDesc;
+	ZeroMemory(&sampDesc, sizeof(sampDesc));
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	hr = m_device->CreateSamplerState(&sampDesc, &pSampler);
+	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
+	}
+
 
 
 	// Create vertex buffer
 	SimpleVertex vertices[] =
 	{
-		XMFLOAT3(0.0f, 0.5f, 0.5f),
-		XMFLOAT3(0.5f, -0.5f, 0.5f),
-		XMFLOAT3(-0.5f, -0.5f, 0.5f),
+		{XMFLOAT3(-0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 1.0f)}, //頂点1	
+		{XMFLOAT3(-0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 0.0f) }, //頂点2
+		{XMFLOAT3(0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f),  XMFLOAT2(1.0f, 1.0f) }, //頂点3
+		{XMFLOAT3(0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(1.0f, 0.0f) }, //頂点4	
 	};
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(SimpleVertex) * 3;
+	bd.ByteWidth = sizeof(SimpleVertex) * 4;
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 	D3D11_SUBRESOURCE_DATA InitData;
@@ -446,29 +574,52 @@ void Game::CreateResources()
 	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
 	// Set primitive topology
-	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	// コンスタントバッファー作成　シェーダーに変換行列を渡す用
+
+	//コンスタントバッファー作成　ここでは変換行列渡し用
+	D3D11_BUFFER_DESC cb;
+	cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cb.ByteWidth = sizeof(SIMPLESHADER_CONSTANT_BUFFER);
+	cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cb.MiscFlags = 0;
+	cb.StructureByteStride = 0;
+	cb.Usage = D3D11_USAGE_DYNAMIC;
+
+	{
+		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
+		if (FAILED(hr)) {
+			return DX::ThrowIfFailed(hr);
+		}
+	}
 }
 
 void Game::OnDeviceLost()
 {
 	// TODO: Add Direct3D resource cleanup here.
 
-	m_depthStencilView.Reset();
-	m_renderTargetView.Reset();
-	m_swapChain.Reset();
-	m_context.Reset();
-	m_device.Reset();
 
+	pTexture.Reset();
+	pShaderResView.Reset();
+	pSampler.Reset();
+
+	m_constantBuffer.Reset();
 	m_vertexShader.Reset();
 	m_pixelShader.Reset();
 	m_vertexLayout.Reset();
 	m_vertexBuffer.Reset();
 
-	// テクスチャ
-	m_texture.Reset();
-	m_spriteBatch.reset();
+	m_blendState.Reset();
+	m_rasterizerState.Reset();
+	m_rasterizerStateBack.Reset();
+	m_depthStencilView.Reset();
+	m_renderTargetView.Reset();
+	m_swapChain.Reset();
 
-	m_states.reset();
+	m_context.Reset();
+	m_device.Reset();
+
 
 	CreateDevice();
 
