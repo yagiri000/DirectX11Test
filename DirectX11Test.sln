@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ParticleTest", "ParticleTes
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3DDrawTest2", "3DDrawTest2\3DDrawTest2.vcxproj", "{AABF38D4-7150-4749-AC0B-91370AAD5C72}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CSOTest", "CSOTest\CSOTest.vcxproj", "{44937830-0CE8-415C-821A-EA5D9EB8B5BE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -91,6 +93,14 @@ Global
 		{AABF38D4-7150-4749-AC0B-91370AAD5C72}.Release|x64.Build.0 = Release|x64
 		{AABF38D4-7150-4749-AC0B-91370AAD5C72}.Release|x86.ActiveCfg = Release|Win32
 		{AABF38D4-7150-4749-AC0B-91370AAD5C72}.Release|x86.Build.0 = Release|Win32
+		{44937830-0CE8-415C-821A-EA5D9EB8B5BE}.Debug|x64.ActiveCfg = Debug|x64
+		{44937830-0CE8-415C-821A-EA5D9EB8B5BE}.Debug|x64.Build.0 = Debug|x64
+		{44937830-0CE8-415C-821A-EA5D9EB8B5BE}.Debug|x86.ActiveCfg = Debug|Win32
+		{44937830-0CE8-415C-821A-EA5D9EB8B5BE}.Debug|x86.Build.0 = Debug|Win32
+		{44937830-0CE8-415C-821A-EA5D9EB8B5BE}.Release|x64.ActiveCfg = Release|x64
+		{44937830-0CE8-415C-821A-EA5D9EB8B5BE}.Release|x64.Build.0 = Release|x64
+		{44937830-0CE8-415C-821A-EA5D9EB8B5BE}.Release|x86.ActiveCfg = Release|Win32
+		{44937830-0CE8-415C-821A-EA5D9EB8B5BE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
