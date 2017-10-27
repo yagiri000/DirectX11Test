@@ -2,7 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Assets">
-      <UniqueIdentifier>b4c43ad5-5951-4b49-b93a-051968387020</UniqueIdentifier>
+      <UniqueIdentifier>b4b1efea-0c65-4dfc-a2cb-73f0600b30bf</UniqueIdentifier>
       <Extensions>ico;cur;bmp;dds;dlg;fbx;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
   </ItemGroup>
@@ -10,11 +10,27 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="StepTimer.h" />
+    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="MinMaxCurve.h" />
+    <ClInclude Include="Particle.h" />
+    <ClInclude Include="Random.h" />
+    <ClInclude Include="Transform.h" />
+    <ClInclude Include="Utility.h" />
+    <ClInclude Include="Easing.h" />
+    <ClInclude Include="Material.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="MinMaxCurve.cpp" />
+    <ClCompile Include="Particle.cpp" />
+    <ClCompile Include="Random.cpp" />
+    <ClCompile Include="Transform.cpp" />
+    <ClCompile Include="Utility.cpp" />
+    <ClCompile Include="Easing.cpp" />
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="Mesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -28,5 +44,8 @@
     <Manifest Include="settings.manifest">
       <Filter>Assets</Filter>
     </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Tutorial02.fx" />
   </ItemGroup>
 </Project>

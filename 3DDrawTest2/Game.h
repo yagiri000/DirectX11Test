@@ -5,14 +5,30 @@
 #pragma once
 
 #include "StepTimer.h"
+#include <vector>
+#include "Particle.h"
 
+using namespace DirectX;
+using Microsoft::WRL::ComPtr;
 
-// A basic game implementation that creates a D3D11 device and
-// provides a game loop.
+//--------------------------------------------------------------------------------------
+// Structures
+//--------------------------------------------------------------------------------------
+struct SimpleVertex
+{
+	DirectX::XMFLOAT3 Pos;
+};
+
+//Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
+struct SIMPLESHADER_CONSTANT_BUFFER
+{
+	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
+};
+
+// 三角形ポリゴンを描画する例
 class Game
 {
 public:
-
     Game();
 
     // Initialization and management
@@ -30,6 +46,8 @@ public:
 
     // Properties
     void GetDefaultSize( int& width, int& height ) const;
+
+	HRESULT CompileShaderFromFile(WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut);
 
 private:
 
@@ -50,12 +68,21 @@ private:
     int                                             m_outputHeight;
 
     D3D_FEATURE_LEVEL                               m_featureLevel;
-    Microsoft::WRL::ComPtr<ID3D11Device1>           m_d3dDevice;
-    Microsoft::WRL::ComPtr<ID3D11DeviceContext1>    m_d3dContext;
+    ComPtr<ID3D11Device1>           m_d3dDevice;
+    ComPtr<ID3D11DeviceContext1>    m_d3dContext;
 
-    Microsoft::WRL::ComPtr<IDXGISwapChain1>         m_swapChain;
-    Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
+    ComPtr<IDXGISwapChain1>         m_swapChain;
+    ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
+    ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
+	ComPtr<ID3D11RasterizerState>	m_rasterizerState;
+
+	ComPtr<ID3D11VertexShader>		m_vertexShader;
+	ComPtr<ID3D11PixelShader>		m_pixelShader;
+	ComPtr<ID3D11InputLayout>		m_vertexLayout;
+	ComPtr<ID3D11Buffer>			m_vertexBuffer;
+	ComPtr<ID3D11Buffer>			m_constantBuffer;
+
+	std::vector<Particle>			m_particles;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
