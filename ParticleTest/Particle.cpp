@@ -28,19 +28,19 @@ void Particle::Update(float deltaTime)
 	// 位置更新
 	m_velocity += m_gravity * deltaTime;
 	m_position += m_velocity * deltaTime;
-
-	// 
 }
 
 void Particle::Draw() const
 {
-	// TODO : 前方を向くようにする
-	Quaternion rotation = Utility::GetCameraTransform().m_rotation;
-
 	float rate = GetTimeRate();
+	Vector3 scale = (Vector3)m_scaleCurve.Get(rate);
+	if (scale.x < 0.0001f &&scale.y < 0.0001f &&scale.z < 0.0001f) {
+		return;
+	}
+	Quaternion rotation = Utility::GetCameraTransform().m_rotation;
 	Transform transform(m_position, (Vector3)m_scaleCurve.Get(rate), rotation);
-
-	Utility::DrawPlane(transform);
+	Vector4 color = m_colorCurve.Get(rate);
+	Utility::DrawPlane(transform, color);
 }
 
 Particle::Particle()
@@ -53,7 +53,7 @@ Particle::Particle(const Vector3 & position, const Vector3 & velocity, const Vec
 	m_gravity(gravity),
 	m_scaleCurve(scaleCurve),
 	m_rotationCurve(rotationCurve),
-	m_colorCurve(m_colorCurve),
+	m_colorCurve(colorCurve),
 	m_lifetime(lifetime),
 	m_elapsedTime(0.0f)
 {

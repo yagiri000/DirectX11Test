@@ -16,7 +16,7 @@ namespace Utility {
 	// ’l‚ðmin‚Æmax‚ÌŠÔ‚É‚µ‚Ä•Ô‚·
 	float Clamp(float value, float min, float max);
 
-	extern std::function<void(const Transform& trans)> DrawPlane;
+	extern std::function<void(const Transform& trans, const Vector4& color)> DrawPlane;
 
 	Quaternion LookRotation(const Vector3& dir);
 }

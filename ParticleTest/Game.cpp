@@ -64,7 +64,7 @@ void Game::Initialize(HWND window, int width, int height)
 
 	// TODO : 修正
 	// 現在グローバル領域の関数にラムダを突っ込み，Drawする部分でそれを呼んでいる
-	Utility::DrawPlane = [&](const Transform& trans) {
+	Utility::DrawPlane = [&](const Transform& trans, const Vector4& color) {
 
 		// 行列計算
 		Matrix mWorld;
@@ -118,35 +118,12 @@ void Game::Initialize(HWND window, int width, int height)
 		di.view = mView;
 		di.proj = mProj;
 		di.vertexCount = 4;
+		di.color = color;
 
 		m_drawOrder.emplace_back(di);
 
 	};
 
-
-	for (size_t i = 0; i < 10; i++) {
-		m_particles.emplace_back(
-			Particle(
-				Vector3::Zero,
-				Random::OnSphere(),
-				Vector3::Zero,
-				MinMaxCurve4(
-					MinMaxCurve(0.3f, 0.0f),
-					MinMaxCurve(0.3f, 0.0f),
-					MinMaxCurve(0.3f, 0.0f),
-					MinMaxCurve(0.3f, 1.0f)
-				),
-				MinMaxCurveRotation(),
-				MinMaxCurve4(
-					MinMaxCurve(1.0f, 1.0f),
-					MinMaxCurve(1.0f, 1.0f),
-					MinMaxCurve(1.0f, 1.0f),
-					MinMaxCurve(1.0f, 0.0f)
-				),
-				1.0f
-			)
-		);
-	}
 	// TODO: Change the timer settings if you want something other than the default variable timestep mode.
 	// e.g. for 60 FPS fixed timestep update logic, call:
 	/*
@@ -172,28 +149,54 @@ void Game::Update(DX::StepTimer const& timer)
 
 	static bool pre = false;
 
-	if (GetKeyState('Z') & 0x80 && !pre) {
-		for (size_t i = 0; i < 30; i++) {
+	if (GetKeyState('Z') & 0x80) {
+		for (size_t i = 0; i < 2; i++) {
 
 			m_particles.emplace_back(
 				Particle(
-					Vector3::Zero,
-					Random::OnSphere() * Random::Range(1.0f, 3.0f),
-					Vector3::Zero,
+					Random::OnSphere() * 0.1f,
+					Random::OnSphere() *  Random::Range(0.0f, 0.15f) + Vector3::Up * Random::Range(1.0f, 2.0f),
+					Vector3::Down * 0.5f,
 					MinMaxCurve4(
-						MinMaxCurve(0.15f, 0.0f),
-						MinMaxCurve(0.15f, 0.0f),
-						MinMaxCurve(0.15f, 0.0f),
-						MinMaxCurve(0.15f, 1.0f)
+						MinMaxCurve(0.4f, 0.0f),
+						MinMaxCurve(0.4f, 0.0f),
+						MinMaxCurve(0.4f, 0.0f),
+						MinMaxCurve(0.4f, 1.0f)
 					),
 					MinMaxCurveRotation(),
 					MinMaxCurve4(
-						MinMaxCurve(1.0f, 1.0f),
-						MinMaxCurve(1.0f, 1.0f),
-						MinMaxCurve(1.0f, 1.0f),
+						MinMaxCurve(1.0f, 0.0f),
+						MinMaxCurve(0.0f, 0.5f),
+						MinMaxCurve(0.0f, 0.1f),
 						MinMaxCurve(1.0f, 0.0f)
 					),
-					Random::Range(0.5f, 3.0f)
+					Random::Range(0.5f, 1.0f)
+				)
+			);
+		}
+	}
+	if (GetKeyState('X') & 0x80) {
+		for (size_t i = 0; i < 10; i++) {
+
+			m_particles.emplace_back(
+				Particle(
+					Random::OnSphere() * 0.0f,
+					Random::OnSphere() * Random::Range(3.0f, 4.0f),
+					Vector3::Down * 9.0f,
+					MinMaxCurve4(
+						MinMaxCurve(0.4f, 0.0f),
+						MinMaxCurve(0.4f, 0.0f),
+						MinMaxCurve(0.4f, 0.0f),
+						MinMaxCurve(0.4f, 1.0f)
+					),
+					MinMaxCurveRotation(),
+					MinMaxCurve4(
+						MinMaxCurve(0.0f, 0.0f),
+						MinMaxCurve(0.0f, 0.5f),
+						MinMaxCurve(1.0f, 0.1f),
+						MinMaxCurve(1.0f, 0.0f)
+					),
+					Random::Range(0.5f, 1.0f)
 				)
 			);
 		}
@@ -248,23 +251,36 @@ void Game::Render()
 		ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
 		m_context->PSSetShaderResources(srv_slot, 1, srv);
 
-		// コンスタントバッファーに各種データを渡す
-		D3D11_MAPPED_SUBRESOURCE pData;
-		SIMPLESHADER_CONSTANT_BUFFER cb;
-		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
-			//ワールド、カメラ、射影行列を渡す
-			XMMATRIX m = i.world*i.view*i.proj;
-			m = XMMatrixTranspose(m);
-			cb.mWVP = m;
-			cb.mW = i.world.Transpose();
+		// VertexShader用コンスタントバッファーに各種データを渡す
+		{
+			D3D11_MAPPED_SUBRESOURCE pData;
+			SIMPLESHADER_CONSTANT_BUFFER cb;
+			if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+				//ワールド、カメラ、射影行列を渡す
+				XMMATRIX m = i.world*i.view*i.proj;
+				m = XMMatrixTranspose(m);
+				cb.mWVP = m;
+				cb.mW = i.world.Transpose();
 
-			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-			m_context->Unmap(m_constantBuffer.Get(), 0);
+				memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+				m_context->Unmap(m_constantBuffer.Get(), 0);
+			}
+		}
+
+		// PixelShader用コンスタントバッファーに各種データを渡す
+		{
+			D3D11_MAPPED_SUBRESOURCE pData;
+			PIXELSHADER_CONSTANT_BUFFER cb;
+			if (SUCCEEDED(m_context->Map(m_constantBufferPixel.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+				cb.color = i.color;
+				memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+				m_context->Unmap(m_constantBufferPixel.Get(), 0);
+			}
 		}
 
 		//このコンスタントバッファーを、どのシェーダーで使うかを指定
 		m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-		m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+		m_context->PSSetConstantBuffers(0, 1, m_constantBufferPixel.GetAddressOf());//ピクセルシェーダーでの使う
 
 		m_context.Get()->Draw(i.vertexCount, 0);
 	}
@@ -636,21 +652,37 @@ void Game::CreateResources()
 	// Set primitive topology
 	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	// コンスタントバッファー作成　シェーダーに変換行列を渡す用
-
 	//コンスタントバッファー作成　ここでは変換行列渡し用
-	D3D11_BUFFER_DESC cb;
-	cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cb.ByteWidth = sizeof(SIMPLESHADER_CONSTANT_BUFFER);
-	cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cb.MiscFlags = 0;
-	cb.StructureByteStride = 0;
-	cb.Usage = D3D11_USAGE_DYNAMIC;
-
 	{
-		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
-		if (FAILED(hr)) {
-			return DX::ThrowIfFailed(hr);
+		D3D11_BUFFER_DESC cb;
+		cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cb.ByteWidth = sizeof(SIMPLESHADER_CONSTANT_BUFFER);
+		cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cb.MiscFlags = 0;
+		cb.StructureByteStride = 0;
+		cb.Usage = D3D11_USAGE_DYNAMIC;
+
+		{
+			hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
+			if (FAILED(hr)) {
+				return DX::ThrowIfFailed(hr);
+			}
+		}
+	}
+	{
+		D3D11_BUFFER_DESC cb;
+		cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cb.ByteWidth = sizeof(PIXELSHADER_CONSTANT_BUFFER);
+		cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cb.MiscFlags = 0;
+		cb.StructureByteStride = 0;
+		cb.Usage = D3D11_USAGE_DYNAMIC;
+
+		{
+			hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBufferPixel.GetAddressOf());
+			if (FAILED(hr)) {
+				return DX::ThrowIfFailed(hr);
+			}
 		}
 	}
 
@@ -689,6 +721,7 @@ void Game::OnDeviceLost()
 	pTexture.Reset();
 
 	m_constantBuffer.Reset();
+	m_constantBufferPixel.Reset();
 	m_vertexShader.Reset();
 	m_pixelShader.Reset();
 	m_vertexLayout.Reset();

@@ -34,5 +34,5 @@ namespace Utility
 	}
 
 
-	std::function<void(const Transform& trans)> DrawPlane;
+	std::function<void(const Transform& trans, const Vector4& color)> DrawPlane;
 }

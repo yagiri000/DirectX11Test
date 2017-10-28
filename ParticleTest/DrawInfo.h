@@ -13,5 +13,6 @@ public:
 	Matrix view;
 	Matrix proj;
 	UINT vertexCount;
+	Vector4 color;
 };
 

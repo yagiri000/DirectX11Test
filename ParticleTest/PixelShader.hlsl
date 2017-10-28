@@ -5,8 +5,7 @@ SamplerState samLinear : register(s0);
 //グローバル
 cbuffer global
 {
-	matrix g_mW;
-	matrix g_mWVP; //ワールド、ビュー、射影の合成変換行列
+	float4 diffuse;
 };
 
 
@@ -19,6 +18,6 @@ struct PS_INPUT
 
 float4 main(PS_INPUT input) : SV_Target
 {
-	float4 color = txDiffuse.Sample(samLinear, input.Tex);
+	float4 color = txDiffuse.Sample(samLinear, input.Tex) * diffuse;
 	return color;
 }
