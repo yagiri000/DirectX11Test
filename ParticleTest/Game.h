@@ -7,6 +7,7 @@
 #include "StepTimer.h"
 #include <vector>
 #include "Particle.h"
+#include "DrawInfo.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -17,11 +18,14 @@ using Microsoft::WRL::ComPtr;
 struct SimpleVertex
 {
 	DirectX::XMFLOAT3 Pos;
+	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT2 UV;
 };
 
 //Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
 struct SIMPLESHADER_CONSTANT_BUFFER
 {
+	XMMATRIX mW;
 	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
 };
 
@@ -75,6 +79,7 @@ private:
     ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
     ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
 	ComPtr<ID3D11RasterizerState>	m_rasterizerState;
+	ComPtr<ID3D11BlendState>		m_blendState;
 
 	ComPtr<ID3D11VertexShader>		m_vertexShader;
 	ComPtr<ID3D11PixelShader>		m_pixelShader;
@@ -82,7 +87,12 @@ private:
 	ComPtr<ID3D11Buffer>			m_vertexBuffer;
 	ComPtr<ID3D11Buffer>			m_constantBuffer;
 
+	ComPtr<ID3D11ShaderResourceView> pShaderResView;
+	ComPtr<ID3D11SamplerState> pSampler;
+	ComPtr<ID3D11Resource> pTexture;
+
 	std::vector<Particle>			m_particles;
+	std::vector<DrawInfo>			m_drawOrder;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;

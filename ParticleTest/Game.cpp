@@ -5,6 +5,7 @@
 #include "pch.h"
 #include "Game.h"
 #include <d3dcompiler.h>
+#include <fstream>
 #include "Utility.h"
 #include "Particle.h"
 #include "Random.h"
@@ -15,6 +16,32 @@ using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
+
+
+
+struct BinFile
+{
+	BinFile(const wchar_t* fpath)
+	{
+		std::ifstream binfile(fpath, std::ios::in | std::ios::binary);
+
+		if (binfile.is_open()) {
+			int fsize = static_cast<int>(binfile.seekg(0, std::ios::end).tellg());
+			binfile.seekg(0, std::ios::beg);
+			std::unique_ptr<char> code(new char[fsize]);
+			binfile.read(code.get(), fsize);
+			nSize = fsize;
+			Bin = std::move(code);
+		}
+
+	}
+
+	const void* get() const { return Bin.get(); }
+	int size() const { return nSize; }
+private:
+	int nSize = 0;
+	std::unique_ptr<char> Bin;
+};
 
 Game::Game() :
 	m_window(nullptr),
@@ -86,28 +113,14 @@ void Game::Initialize(HWND window, int width, int height)
 		Game::GetDefaultSize(width, height);
 		mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
-		// 使用シェーダー登録
-		m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-		m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+		DrawInfo di;
+		di.world = mWorld;
+		di.view = mView;
+		di.proj = mProj;
+		di.vertexCount = 4;
 
-		// コンスタントバッファーに各種データを渡す
-		D3D11_MAPPED_SUBRESOURCE pData;
-		SIMPLESHADER_CONSTANT_BUFFER cb;
-		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
-			//ワールド、カメラ、射影行列を渡す
-			XMMATRIX m = mWorld*mView*mProj;
-			m = XMMatrixTranspose(m);
-			cb.mWVP = m;
+		m_drawOrder.emplace_back(di);
 
-			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-			m_context->Unmap(m_constantBuffer.Get(), 0);
-		}
-
-		//このコンスタントバッファーを、どのシェーダーで使うかを指定
-		m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-		m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
-
-		m_context.Get()->Draw(4, 0);
 	};
 
 
@@ -211,6 +224,52 @@ void Game::Render()
 	for (auto&& i : m_particles) {
 		i.Draw();
 	}
+
+
+	std::sort(m_drawOrder.begin(), m_drawOrder.end(), [](const DrawInfo& a, const DrawInfo& b) {
+		Matrix am = a.world * a.view * a.proj;
+		Matrix bm = b.world * b.view * b.proj;
+		return am._43 > bm._43;
+	});
+
+	for (auto&&i : m_drawOrder) {
+
+		// 使用シェーダー登録
+		m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+		m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+
+		// サンプラー
+		UINT smp_slot = 0;
+		ID3D11SamplerState* smp[1] = { pSampler.Get() };
+		m_context->PSSetSamplers(smp_slot, 1, smp);
+
+		// シェーダーリソースビュー（テクスチャ）
+		UINT srv_slot = 0;
+		ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
+		m_context->PSSetShaderResources(srv_slot, 1, srv);
+
+		// コンスタントバッファーに各種データを渡す
+		D3D11_MAPPED_SUBRESOURCE pData;
+		SIMPLESHADER_CONSTANT_BUFFER cb;
+		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+			//ワールド、カメラ、射影行列を渡す
+			XMMATRIX m = i.world*i.view*i.proj;
+			m = XMMatrixTranspose(m);
+			cb.mWVP = m;
+			cb.mW = i.world.Transpose();
+
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+			m_context->Unmap(m_constantBuffer.Get(), 0);
+		}
+
+		//このコンスタントバッファーを、どのシェーダーで使うかを指定
+		m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+		m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+
+		m_context.Get()->Draw(i.vertexCount, 0);
+	}
+
+	m_drawOrder.clear();
 
 	Present();
 }
@@ -489,63 +548,72 @@ void Game::CreateResources()
 	HRESULT hr;
 
 
-	// Compile the vertex shader
-	ID3DBlob* pVSBlob = NULL;
-	hr = CompileShaderFromFile(L"Tutorial02.fx", "VS", "vs_4_0", &pVSBlob);
+	//シェーダー読み込み
+	BinFile vscode(L"..\\Debug\\VertexShader.cso");
+	BinFile pscode(L"..\\Debug\\PixelShader.cso");
+
+	// 頂点シェーダ作成
+	//  メモ：シェーダーをデバッグ情報ありでコンパイルすると
+	//　　　　ここでエラー発生　CREATEVERTEXSHADER_INVALIDSHADERBYTECODE
+	hr = m_device.Get()->CreateVertexShader(vscode.get(), vscode.size(), NULL, m_vertexShader.GetAddressOf());
 	if (FAILED(hr)) {
-		MessageBox(NULL,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
 		return DX::ThrowIfFailed(hr);
 	}
 
-	// Create the vertex shader
-
-	hr = m_device.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, m_vertexShader.GetAddressOf());
+	// ピクセルシェーダ作成
+	hr = m_device.Get()->CreatePixelShader(pscode.get(), pscode.size(), NULL, m_pixelShader.GetAddressOf());
 	if (FAILED(hr)) {
-		pVSBlob->Release();
 		return DX::ThrowIfFailed(hr);
 	}
 
-	// Define the input layout
-	D3D11_INPUT_ELEMENT_DESC layout[] =
-	{
+	// 入力レイアウト定義
+	D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	UINT numElements = ARRAYSIZE(layout);
+	UINT elem_num = ARRAYSIZE(layout);
 
-	// Create the input layout
-	hr = m_device.Get()->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
-		pVSBlob->GetBufferSize(), m_vertexLayout.GetAddressOf());
-	pVSBlob->Release();
-	if (FAILED(hr))
+	// 入力レイアウト作成
+	hr = m_device.Get()->CreateInputLayout(layout, elem_num, vscode.get(),
+		vscode.size(), m_vertexLayout.GetAddressOf());
+	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
+	}
 
 	// Set the input layout
 	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
 
-	// Compile the pixel shader
-	ID3DBlob* pPSBlob = NULL;
-	hr = CompileShaderFromFile(L"Tutorial02.fx", "PS", "ps_4_0", &pPSBlob);
+
+	// テクスチャ作成
+	hr = DirectX::CreateWICTextureFromFile(m_device.Get(), L"image.png", &pTexture, &pShaderResView);
 	if (FAILED(hr)) {
-		MessageBox(NULL,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
 		return DX::ThrowIfFailed(hr);
 	}
 
-	// Create the pixel shader
-	hr = m_device.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, m_pixelShader.GetAddressOf());
-	pPSBlob->Release();
-	if (FAILED(hr))
+	// サンプラー作成
+	D3D11_SAMPLER_DESC sampDesc;
+	ZeroMemory(&sampDesc, sizeof(sampDesc));
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	hr = m_device->CreateSamplerState(&sampDesc, &pSampler);
+	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
+	}
 
 
 	// Create vertex buffer
 	SimpleVertex vertices[] =
 	{
-		XMFLOAT3(-0.5,-0.5,0),//頂点1	
-		XMFLOAT3(-0.5,0.5,0), //頂点2
-		XMFLOAT3(0.5,-0.5,0),  //頂点3
-		XMFLOAT3(0.5,0.5,0), //頂点4	
+		{ XMFLOAT3(-0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 1.0f) }, //頂点1	
+		{ XMFLOAT3(-0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 0.0f) }, //頂点2
+		{ XMFLOAT3(0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f),  XMFLOAT2(1.0f, 1.0f) }, //頂点3
+		{ XMFLOAT3(0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(1.0f, 0.0f) }, //頂点4	
 	};
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
@@ -585,11 +653,40 @@ void Game::CreateResources()
 			return DX::ThrowIfFailed(hr);
 		}
 	}
+
+
+	// ブレンドステート作成
+	// TODO : 加算にしたつもりだが正しく動作するか検証する
+	{
+		D3D11_BLEND_DESC bd;
+		ZeroMemory(&bd, sizeof(D3D11_BLEND_DESC));
+		bd.IndependentBlendEnable = false;
+		bd.AlphaToCoverageEnable = false;
+		bd.RenderTarget[0].BlendEnable = true;
+		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		bd.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+		if (FAILED(m_device->CreateBlendState(&bd, m_blendState.GetAddressOf()))) {
+			return DX::ThrowIfFailed(E_FAIL);
+		}
+
+		UINT mask = 0xffffffff;
+		m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
+	}
 }
 
 void Game::OnDeviceLost()
 {
 	// TODO: Add Direct3D resource cleanup here.
+
+	pShaderResView.Reset();
+	pSampler.Reset();
+	pTexture.Reset();
 
 	m_constantBuffer.Reset();
 	m_vertexShader.Reset();
@@ -597,6 +694,7 @@ void Game::OnDeviceLost()
 	m_vertexLayout.Reset();
 	m_vertexBuffer.Reset();
 
+	m_blendState.Reset();
 	m_rasterizerState.Reset();
 	m_depthStencilView.Reset();
 	m_renderTargetView.Reset();
