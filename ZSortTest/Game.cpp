@@ -10,6 +10,7 @@
 #include <fstream>
 #include "Utility.h"
 #include "Random.h"
+#include "DrawInfo.h"
 
 extern void ExitGame();
 
@@ -131,8 +132,11 @@ void Game::Render()
 
 	m_context->RSSetState(m_rasterizerState.Get());
 
+	static std::vector<DrawInfo> vec;
 
 	for (int i = 0; i < 5; i++) {
+
+		DrawInfo di;
 
 		// 行列計算
 		Matrix mWorld;
@@ -150,13 +154,28 @@ void Game::Render()
 		//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
 		//ワールドトランスフォーム（絶対座標変換）
 		mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix()
-			* Matrix::CreateTranslation(pos + Vector3(0.3f * i, 0.3f * i, -0.3f * i));
+			* Matrix::CreateTranslation(pos * (float)i);
 
 		// プロジェクショントランスフォーム（射影変換）
 		int width, height;
 		Game::GetDefaultSize(width, height);
 		mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
+		di.world = mWorld;
+		di.view = mView;
+		di.proj = mProj;
+		di.vertexCount = 4;
+
+		vec.emplace_back(di);
+	}
+
+	std::sort(vec.begin(), vec.end(), [](const DrawInfo& a, const DrawInfo& b) {
+		Matrix am = a.world * a.view * a.proj;
+		Matrix bm = b.world * b.view * b.proj;
+		return am._43 > bm._43;
+	});
+
+	for (auto &i : vec) {
 		// 使用シェーダー登録
 		m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
 		m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
@@ -176,10 +195,10 @@ void Game::Render()
 		SIMPLESHADER_CONSTANT_BUFFER cb;
 		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
 			//ワールド、カメラ、射影行列を渡す
-			XMMATRIX m = mWorld*mView*mProj;
+			XMMATRIX m = i.world*i.view*i.proj;
 			m = XMMatrixTranspose(m);
 
-			cb.mW = mWorld.Transpose();
+			cb.mW = i.world.Transpose();
 			cb.mWVP = m;
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
@@ -190,8 +209,11 @@ void Game::Render()
 		m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
 		m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
 
-		m_context.Get()->Draw(4, 0);
+		m_context.Get()->Draw(i.vertexCount, 0);
 	}
+
+
+	vec.clear();
 
 	Present();
 }
@@ -482,8 +504,8 @@ void Game::CreateResources()
 
 
 	//シェーダー読み込み
-	BinFile vscode(L"..\\Debug\\VertexShader.cso");
-	BinFile pscode(L"..\\Debug\\PixelShader.cso");
+	BinFile vscode(L"..\\data\\VertexShader.cso");
+	BinFile pscode(L"..\\data\\PixelShader.cso");
 
 	// 頂点シェーダ作成
 	//  メモ：シェーダーをデバッグ情報ありでコンパイルすると
