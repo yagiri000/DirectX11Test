@@ -26,7 +26,6 @@ void Input::Update()
 {
 	Input& input = Get();
 	input.m_keyboardState = input.m_keyboard->GetState();
-	input.m_mouse->SetMode(Mouse::Mode::MODE_RELATIVE);
 	input.m_mouseState = input.m_mouse->GetState();
 	input.m_keyboardTracker->Update(input.m_keyboardState);
 	input.m_mouseTracker->Update(input.m_mouseState);
