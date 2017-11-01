@@ -104,13 +104,13 @@ void Game::Clear()
 {
 	// Clear the views.
 	//m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
-	m_d3dContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	m_d3dContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 
 	// Set the viewport.
 	CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(m_outputWidth), static_cast<float>(m_outputHeight));
-	m_d3dContext->RSSetViewports(1, &viewport);
+	m_context->RSSetViewports(1, &viewport);
 }
 
 // Presents the back buffer contents to the screen.
@@ -257,16 +257,16 @@ void Game::CreateDevice()
 	}
 #endif
 
-	DX::ThrowIfFailed(device.As(&m_d3dDevice));
-	DX::ThrowIfFailed(context.As(&m_d3dContext));
+	DX::ThrowIfFailed(device.As(&m_device));
+	DX::ThrowIfFailed(context.As(&m_context));
 
 	// TODO: Initialize device dependent objects here (independent of window size).
 
 	// âÊëúì«Ç›çûÇ›
-	m_spriteBatch = std::make_unique<SpriteBatch>(m_d3dContext.Get());
+	m_spriteBatch = std::make_unique<SpriteBatch>(m_context.Get());
 	ComPtr<ID3D11Resource> resource;
 	DX::ThrowIfFailed(
-		CreateWICTextureFromFile(m_d3dDevice.Get(), L"DotRed64.png", resource.GetAddressOf(), m_texture.ReleaseAndGetAddressOf())
+		CreateWICTextureFromFile(m_device.Get(), L"DotRed64.png", resource.GetAddressOf(), m_texture.ReleaseAndGetAddressOf())
 	);
 
 	ComPtr<ID3D11Texture2D> texture;
@@ -275,7 +275,7 @@ void Game::CreateDevice()
 	CD3D11_TEXTURE2D_DESC textureDesc;
 	texture->GetDesc(&textureDesc);
 
-	m_states.reset(new CommonStates(m_d3dDevice.Get()));
+	m_states.reset(new CommonStates(m_device.Get()));
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -283,10 +283,10 @@ void Game::CreateResources()
 {
 	// Clear the previous window size specific context.
 	ID3D11RenderTargetView* nullViews[] = { nullptr };
-	m_d3dContext->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
+	m_context->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
 	m_renderTargetView.Reset();
 	m_depthStencilView.Reset();
-	m_d3dContext->Flush();
+	m_context->Flush();
 
 	UINT backBufferWidth = static_cast<UINT>(m_outputWidth);
 	UINT backBufferHeight = static_cast<UINT>(m_outputHeight);
@@ -313,7 +313,7 @@ void Game::CreateResources()
 	else {
 		// First, retrieve the underlying DXGI Device from the D3D Device.
 		ComPtr<IDXGIDevice1> dxgiDevice;
-		DX::ThrowIfFailed(m_d3dDevice.As(&dxgiDevice));
+		DX::ThrowIfFailed(m_device.As(&dxgiDevice));
 
 		// Identify the physical adapter (GPU or card) this device is running on.
 		ComPtr<IDXGIAdapter> dxgiAdapter;
@@ -338,7 +338,7 @@ void Game::CreateResources()
 
 		// Create a SwapChain from a Win32 window.
 		DX::ThrowIfFailed(dxgiFactory->CreateSwapChainForHwnd(
-			m_d3dDevice.Get(),
+			m_device.Get(),
 			m_window,
 			&swapChainDesc,
 			&fsSwapChainDesc,
@@ -355,17 +355,17 @@ void Game::CreateResources()
 	DX::ThrowIfFailed(m_swapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf())));
 
 	// Create a view interface on the rendertarget to use on bind.
-	DX::ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), nullptr, m_renderTargetView.ReleaseAndGetAddressOf()));
+	DX::ThrowIfFailed(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_renderTargetView.ReleaseAndGetAddressOf()));
 
 	// Allocate a 2-D surface as the depth/stencil buffer and
 	// create a DepthStencil view on this surface to use on bind.
 	CD3D11_TEXTURE2D_DESC depthStencilDesc(depthBufferFormat, backBufferWidth, backBufferHeight, 1, 1, D3D11_BIND_DEPTH_STENCIL);
 
 	ComPtr<ID3D11Texture2D> depthStencil;
-	DX::ThrowIfFailed(m_d3dDevice->CreateTexture2D(&depthStencilDesc, nullptr, depthStencil.GetAddressOf()));
+	DX::ThrowIfFailed(m_device->CreateTexture2D(&depthStencilDesc, nullptr, depthStencil.GetAddressOf()));
 
 	CD3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc(D3D11_DSV_DIMENSION_TEXTURE2D);
-	DX::ThrowIfFailed(m_d3dDevice->CreateDepthStencilView(depthStencil.Get(), &depthStencilViewDesc, m_depthStencilView.ReleaseAndGetAddressOf()));
+	DX::ThrowIfFailed(m_device->CreateDepthStencilView(depthStencil.Get(), &depthStencilViewDesc, m_depthStencilView.ReleaseAndGetAddressOf()));
 
 	// TODO: Initialize windows-size dependent objects here.
 	// à»â∫ÅCí«â¡ÇµÇΩä÷êîåQ
@@ -386,7 +386,7 @@ void Game::CreateResources()
 
 	// Create the vertex shader
 
-	hr = m_d3dDevice.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, m_vertexShader.GetAddressOf());
+	hr = m_device.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, m_vertexShader.GetAddressOf());
 	if (FAILED(hr)) {
 		pVSBlob->Release();
 		return DX::ThrowIfFailed(hr);
@@ -400,14 +400,14 @@ void Game::CreateResources()
 	UINT numElements = ARRAYSIZE(layout);
 
 	// Create the input layout
-	hr = m_d3dDevice.Get()->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
+	hr = m_device.Get()->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
 		pVSBlob->GetBufferSize(), m_vertexLayout.GetAddressOf());
 	pVSBlob->Release();
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set the input layout
-	m_d3dContext.Get()->IASetInputLayout(m_vertexLayout.Get());
+	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = NULL;
@@ -419,7 +419,7 @@ void Game::CreateResources()
 	}
 
 	// Create the pixel shader
-	hr = m_d3dDevice.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, m_pixelShader.GetAddressOf());
+	hr = m_device.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, m_pixelShader.GetAddressOf());
 	pPSBlob->Release();
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
@@ -441,17 +441,17 @@ void Game::CreateResources()
 	D3D11_SUBRESOURCE_DATA InitData;
 	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = vertices;
-	hr = m_d3dDevice.Get()->CreateBuffer(&bd, &InitData, m_vertexBuffer.GetAddressOf());
+	hr = m_device.Get()->CreateBuffer(&bd, &InitData, m_vertexBuffer.GetAddressOf());
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set vertex buffer
 	UINT stride = sizeof(SimpleVertex);
 	UINT offset = 0;
-	m_d3dContext.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
 	// Set primitive topology
-	m_d3dContext.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void Game::OnDeviceLost()
@@ -461,8 +461,8 @@ void Game::OnDeviceLost()
 	m_depthStencilView.Reset();
 	m_renderTargetView.Reset();
 	m_swapChain.Reset();
-	m_d3dContext.Reset();
-	m_d3dDevice.Reset();
+	m_context.Reset();
+	m_device.Reset();
 
 	m_vertexShader.Reset();
 	m_pixelShader.Reset();
