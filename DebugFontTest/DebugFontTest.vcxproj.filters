@@ -14,6 +14,9 @@
     <ClInclude Include="Transform.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Easing.h" />
+    <ClInclude Include="SampleFpsTextRenderer.h" />
+    <ClInclude Include="DirectXHelper.h" />
+    <ClInclude Include="DeviceResources.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -23,6 +26,8 @@
     <ClCompile Include="Utility.cpp" />
     <ClCompile Include="Easing.cpp" />
     <ClCompile Include="Random.cpp" />
+    <ClCompile Include="SampleFpsTextRenderer.cpp" />
+    <ClCompile Include="DeviceResources.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

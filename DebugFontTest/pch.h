@@ -29,10 +29,17 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <wrl.h>
 #include <wrl/client.h>
+#include <dxgi1_4.h>
+#include <d3d11_3.h>
+#include <d2d1_3.h>
+#include <d2d1effects_2.h>
+#include <dwrite_3.h>
+#include <wincodec.h>
+#include <agile.h>
+#include <concrt.h>
 
-#include <d3d11_1.h>
-#include <dxgi1_2.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
 
