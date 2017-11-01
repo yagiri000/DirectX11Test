@@ -15,6 +15,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KeyboardTest", "KeyboardTes
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MouseTest", "MouseTest\MouseTest.vcxproj", "{01C6F4C2-069A-4634-87EF-6EAAAD83453B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FontTest2", "FontTest2\FontTest2.vcxproj", "{5043E5B5-31F7-4674-8E91-987A72B1B678}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Input_FontTest", "Input_FontTest\Input_FontTest.vcxproj", "{ACD55F53-52F8-41B4-9DF3-90085202ACF8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -71,6 +75,22 @@ Global
 		{01C6F4C2-069A-4634-87EF-6EAAAD83453B}.Release|x64.Build.0 = Release|x64
 		{01C6F4C2-069A-4634-87EF-6EAAAD83453B}.Release|x86.ActiveCfg = Release|Win32
 		{01C6F4C2-069A-4634-87EF-6EAAAD83453B}.Release|x86.Build.0 = Release|Win32
+		{5043E5B5-31F7-4674-8E91-987A72B1B678}.Debug|x64.ActiveCfg = Debug|x64
+		{5043E5B5-31F7-4674-8E91-987A72B1B678}.Debug|x64.Build.0 = Debug|x64
+		{5043E5B5-31F7-4674-8E91-987A72B1B678}.Debug|x86.ActiveCfg = Debug|Win32
+		{5043E5B5-31F7-4674-8E91-987A72B1B678}.Debug|x86.Build.0 = Debug|Win32
+		{5043E5B5-31F7-4674-8E91-987A72B1B678}.Release|x64.ActiveCfg = Release|x64
+		{5043E5B5-31F7-4674-8E91-987A72B1B678}.Release|x64.Build.0 = Release|x64
+		{5043E5B5-31F7-4674-8E91-987A72B1B678}.Release|x86.ActiveCfg = Release|Win32
+		{5043E5B5-31F7-4674-8E91-987A72B1B678}.Release|x86.Build.0 = Release|Win32
+		{ACD55F53-52F8-41B4-9DF3-90085202ACF8}.Debug|x64.ActiveCfg = Debug|x64
+		{ACD55F53-52F8-41B4-9DF3-90085202ACF8}.Debug|x64.Build.0 = Debug|x64
+		{ACD55F53-52F8-41B4-9DF3-90085202ACF8}.Debug|x86.ActiveCfg = Debug|Win32
+		{ACD55F53-52F8-41B4-9DF3-90085202ACF8}.Debug|x86.Build.0 = Debug|Win32
+		{ACD55F53-52F8-41B4-9DF3-90085202ACF8}.Release|x64.ActiveCfg = Release|x64
+		{ACD55F53-52F8-41B4-9DF3-90085202ACF8}.Release|x64.Build.0 = Release|x64
+		{ACD55F53-52F8-41B4-9DF3-90085202ACF8}.Release|x86.ActiveCfg = Release|Win32
+		{ACD55F53-52F8-41B4-9DF3-90085202ACF8}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
