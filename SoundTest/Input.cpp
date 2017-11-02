@@ -2,18 +2,41 @@
 #include "Input.h"
 
 
+class Input::Impl
+{
+public:
+	Impl(HWND window);
+
+	std::unique_ptr<DirectX::Keyboard> m_keyboard;
+	std::unique_ptr<DirectX::Mouse> m_mouse;
+	std::unique_ptr<Keyboard::KeyboardStateTracker> m_keyboardTracker;
+	std::unique_ptr<Mouse::ButtonStateTracker> m_mouseTracker;
+
+	// TODO : unique_ptrにするべきか？
+	Keyboard::State m_keyboardState;
+	Mouse::State m_mouseState;
+
+};
+
+
+Input::Impl::Impl(HWND window) :
+	m_keyboard(std::make_unique<DirectX::Keyboard>()),
+	m_mouse(std::make_unique<DirectX::Mouse>()),
+	m_keyboardTracker(std::make_unique<DirectX::Keyboard::KeyboardStateTracker>()),
+	m_mouseTracker(std::make_unique<DirectX::Mouse::ButtonStateTracker>())
+{
+	m_mouse->SetWindow(window);
+}
+
+
 Input::Input()
 {
 }
 
 void Input::Initialize(HWND window)
 {
-	Input& input = Get();
-	input.m_keyboard = std::make_unique<DirectX::Keyboard>();
-	input.m_mouse = std::make_unique<DirectX::Mouse>();
-	input.m_keyboardTracker = std::make_unique<DirectX::Keyboard::KeyboardStateTracker>();
-	input.m_mouseTracker = std::make_unique<DirectX::Mouse::ButtonStateTracker>();
-	input.m_mouse->SetWindow(window);
+	Input& ins = Get();
+	ins.pImpl = std::make_unique<Impl>(window);
 }
 
 Input& Input::Get()
@@ -24,47 +47,47 @@ Input& Input::Get()
 
 void Input::Update()
 {
-	Input& input = Get();
-	input.m_keyboardState = input.m_keyboard->GetState();
-	input.m_mouseState = input.m_mouse->GetState();
-	input.m_keyboardTracker->Update(input.m_keyboardState);
-	input.m_mouseTracker->Update(input.m_mouseState);
+	auto& pImpl = Get().pImpl;
+	pImpl->m_keyboardState = pImpl->m_keyboard->GetState();
+	pImpl->m_mouseState = pImpl->m_mouse->GetState();
+	pImpl->m_keyboardTracker->Update(pImpl->m_keyboardState);
+	pImpl->m_mouseTracker->Update(pImpl->m_mouseState);
 }
 
 //キーが押されているかをboolで返す
 bool Input::GetKey(DirectX::Keyboard::Keys key)
 {
-	Input& input = Get();
-	return input.m_keyboardState.IsKeyDown(key);
+	auto& pImpl = Get().pImpl;
+	return pImpl->m_keyboardState.IsKeyDown(key);
 }
 
 //キーが押されたフレームだけtrueを返す
 bool Input::GetKeyDown(DirectX::Keyboard::Keys key)
 {
-	Input& input = Get();
-	return input.m_keyboardTracker->IsKeyPressed(key);
+	auto& pImpl = Get().pImpl;
+	return pImpl->m_keyboardTracker->IsKeyPressed(key);
 
 }
 
 //キーが離されたフレームだけtrueを返す
 bool Input::GetKeyUp(DirectX::Keyboard::Keys key)
 {
-	Input& input = Get();
-	return input.m_keyboardTracker->IsKeyReleased(key);
+	auto& pImpl = Get().pImpl;
+	return pImpl->m_keyboardTracker->IsKeyReleased(key);
 }
 
 
 bool Input::GetMouseButton(MouseButton button)
 {
-	Input& input = Get();
+	auto& pImpl = Get().pImpl;
 	if (button == MouseButton::Left) {
-		return input.m_mouseState.leftButton;
+		return pImpl->m_mouseState.leftButton;
 	}
 	else if (button == MouseButton::Middle) {
-		return input.m_mouseState.middleButton;
+		return pImpl->m_mouseState.middleButton;
 	}
 	else if (button == MouseButton::Right) {
-		return input.m_mouseState.rightButton;
+		return pImpl->m_mouseState.rightButton;
 	}
 	return false;
 }
@@ -72,15 +95,16 @@ bool Input::GetMouseButton(MouseButton button)
 bool Input::GetMouseButtonDown(MouseButton button)
 {
 	using ButtonState = Mouse::ButtonStateTracker::ButtonState;
-	Input& input = Get();
+
+	auto& pImpl = Get().pImpl;
 	if (button == MouseButton::Left) {
-		return input.m_mouseTracker->leftButton == ButtonState::PRESSED;
+		return pImpl->m_mouseTracker->leftButton == ButtonState::PRESSED;
 	}
 	else if (button == MouseButton::Middle) {
-		return input.m_mouseTracker->middleButton == ButtonState::PRESSED;
+		return pImpl->m_mouseTracker->middleButton == ButtonState::PRESSED;
 	}
 	else if (button == MouseButton::Right) {
-		return input.m_mouseTracker->rightButton == ButtonState::PRESSED;
+		return pImpl->m_mouseTracker->rightButton == ButtonState::PRESSED;
 	}
 	return false;
 }
@@ -88,15 +112,15 @@ bool Input::GetMouseButtonDown(MouseButton button)
 bool Input::GetMouseButtonUp(MouseButton button)
 {
 	using ButtonState = Mouse::ButtonStateTracker::ButtonState;
-	Input& input = Get();
+	auto& pImpl = Get().pImpl;
 	if (button == MouseButton::Left) {
-		return input.m_mouseTracker->leftButton == ButtonState::UP;
+		return pImpl->m_mouseTracker->leftButton == ButtonState::UP;
 	}
 	else if (button == MouseButton::Middle) {
-		return input.m_mouseTracker->middleButton == ButtonState::UP;
+		return pImpl->m_mouseTracker->middleButton == ButtonState::UP;
 	}
 	else if (button == MouseButton::Right) {
-		return input.m_mouseTracker->rightButton == ButtonState::UP;
+		return pImpl->m_mouseTracker->rightButton == ButtonState::UP;
 	}
 	return false;
 }
@@ -104,21 +128,19 @@ bool Input::GetMouseButtonUp(MouseButton button)
 
 Vector2 Input::GetMousePos()
 {
-	Input& input = Get();
+	auto& pImpl = Get().pImpl;
 	return Vector2(
-		static_cast<float>(input.m_mouseState.x),
-		static_cast<float>(input.m_mouseState.y)
+		static_cast<float>(pImpl->m_mouseState.x),
+		static_cast<float>(pImpl->m_mouseState.y)
 	);
 }
 
 int Input::GetMouseWheel()
 {
 	static int preWheelValue = 0;
-	Input& input = Get();
-	int scrollWheelValue = input.m_mouseState.scrollWheelValue;
+	auto& pImpl = Get().pImpl;
+	int scrollWheelValue = pImpl->m_mouseState.scrollWheelValue;
 	int delta = scrollWheelValue - preWheelValue;
 	preWheelValue = scrollWheelValue;
 	return delta;
 }
-
-

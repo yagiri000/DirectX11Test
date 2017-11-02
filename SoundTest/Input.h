@@ -47,14 +47,9 @@ public:
 
 	static int GetMouseWheel();
 
-
 private:
 	static Input& Get();
 
-	std::unique_ptr<DirectX::Keyboard> m_keyboard;
-	std::unique_ptr<DirectX::Mouse> m_mouse;
-	std::unique_ptr<Keyboard::KeyboardStateTracker> m_keyboardTracker;
-	std::unique_ptr<Mouse::ButtonStateTracker> m_mouseTracker;
-	Keyboard::State m_keyboardState;
-	Mouse::State m_mouseState;
+	class Impl;
+	std::unique_ptr<Impl> pImpl;
 };
