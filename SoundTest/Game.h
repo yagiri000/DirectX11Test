@@ -5,14 +5,9 @@
 #pragma once
 
 #include "StepTimer.h"
-#include "SpriteFont.h"
-#include "SimpleMath.h"
-#include "Keyboard.h"
-#include "Mouse.h"
 
 
-
-//Inputクラスをフォント表示して動作確認するテスト
+// 音再生テスト
 
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
@@ -67,4 +62,7 @@ private:
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
 
+	std::unique_ptr<DirectX::AudioEngine> audEngine;
+	std::unique_ptr<DirectX::SoundEffect> soundEffect;
+	std::unique_ptr<DirectX::SoundEffectInstance> effect;
 };

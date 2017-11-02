@@ -60,8 +60,18 @@ void Game::Update(DX::StepTimer const& timer)
 	// TODO: Add your game logic here.
 
 	Input::Update();
+	if (!audEngine->Update()) {
+		// No audio device is active
+		if (audEngine->IsCriticalError()) {
+		}
+	}
+
 	Font::DrawQueue(L"hoge", Input::GetMousePos());
 	Font::DrawQueue(L"hoge", Input::GetMousePos() + Vector2(100.0f, 100.0f));
+
+	if (Input::GetKeyDown(Keyboard::Keys::Z)) {
+		soundEffect->Play();
+	}
 }
 
 // Draws the scene.
@@ -217,6 +227,15 @@ void Game::CreateDevice()
 	// TODO: Initialize device dependent objects here (independent of window size).
 
 	Font::Initialize(m_d3dDevice.Get(), m_d3dContext.Get(), L"myfile.spritefont");
+
+	AUDIO_ENGINE_FLAGS eflags = AudioEngine_Default;
+#ifdef _DEBUG
+	eflags = eflags | AudioEngine_Debug;
+#endif
+	audEngine = std::make_unique<AudioEngine>(eflags);
+
+	soundEffect = std::make_unique<SoundEffect>(audEngine.get(), L"Sound.wav");
+	effect = soundEffect->CreateInstance();
 
 }
 
