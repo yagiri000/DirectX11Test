@@ -27,7 +27,6 @@
 #define NOHELP
 
 #define WIN32_LEAN_AND_MEAN
-
 #ifdef _DEBUG
 #pragma comment(lib, "DirectXTK_d.lib")
 #else
@@ -47,8 +46,8 @@
 #include <exception>
 #include <memory>
 #include <stdexcept>
-
-#include <Audio.h>
+#include <Keyboard.h>
+#include <Mouse.h>
 
 namespace DX
 {
