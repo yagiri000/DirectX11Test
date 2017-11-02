@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Input.h"
 #include "Font.h"
+#include "Sound.h"
 
 extern void ExitGame();
 
@@ -40,6 +41,10 @@ void Game::Initialize(HWND window, int width, int height)
 	m_timer.SetTargetElapsedSeconds(1.0 / 60);
 	*/
 	Input::Initialize(window);
+	
+	// TODO : Initialize‚ÌˆÊ’u‚ª‚±‚±‚Å–â‘è‚È‚¢‚©ŒŸØ
+	Sound::Initialize();
+
 }
 
 // Executes the basic game loop.
@@ -60,17 +65,13 @@ void Game::Update(DX::StepTimer const& timer)
 	// TODO: Add your game logic here.
 
 	Input::Update();
-	if (!audEngine->Update()) {
-		// No audio device is active
-		if (audEngine->IsCriticalError()) {
-		}
-	}
+	Sound::Update();
 
 	Font::DrawQueue(L"hoge", Input::GetMousePos());
 	Font::DrawQueue(L"hoge", Input::GetMousePos() + Vector2(100.0f, 100.0f));
 
 	if (Input::GetKeyDown(Keyboard::Keys::Z)) {
-		soundEffect->Play();
+		Sound::PlayOneShot(L"Sound.wav");
 	}
 }
 
@@ -228,14 +229,6 @@ void Game::CreateDevice()
 
 	Font::Initialize(m_d3dDevice.Get(), m_d3dContext.Get(), L"myfile.spritefont");
 
-	AUDIO_ENGINE_FLAGS eflags = AudioEngine_Default;
-#ifdef _DEBUG
-	eflags = eflags | AudioEngine_Debug;
-#endif
-	audEngine = std::make_unique<AudioEngine>(eflags);
-
-	soundEffect = std::make_unique<SoundEffect>(audEngine.get(), L"Sound.wav");
-	effect = soundEffect->CreateInstance();
 
 }
 

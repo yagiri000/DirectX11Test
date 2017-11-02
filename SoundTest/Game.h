@@ -62,7 +62,4 @@ private:
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
 
-	std::unique_ptr<DirectX::AudioEngine> audEngine;
-	std::unique_ptr<DirectX::SoundEffect> soundEffect;
-	std::unique_ptr<DirectX::SoundEffectInstance> effect;
 };

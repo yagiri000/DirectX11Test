@@ -12,6 +12,7 @@
     <ClInclude Include="StepTimer.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="Font.h" />
+    <ClInclude Include="Sound.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -19,6 +20,7 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="Input.cpp" />
+    <ClCompile Include="Sound.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
