@@ -42,6 +42,9 @@
     <FxCompile Include="VertexShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
+    <MeshContentTask Include="a.fbx">
+      <Filter>Assets</Filter>
+    </MeshContentTask>
     <MeshContentTask Include="TornadoLinear.fbx">
       <Filter>Assets</Filter>
     </MeshContentTask>

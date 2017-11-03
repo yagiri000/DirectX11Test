@@ -336,6 +336,19 @@ void Game::CreateDevice()
     // TODO: Initialize device dependent objects here (independent of window size).
 
 
+	// TODO : ŒŸØ—p‚È‚Ì‚ÅÁ‚·
+	auto m_states = std::make_unique<CommonStates>(m_device.Get());
+
+	auto m_fxFactory = std::make_unique<EffectFactory>(m_device.Get());
+
+	auto m_model = Model::CreateFromCMO(m_device.Get(), L"../Debug/a.cmo", *m_fxFactory);
+
+	for (auto&& i : m_model->meshes) {
+		for (auto&& j : i->meshParts) {
+			j->indexFormat;
+		}
+	}
+
 
 }
 
