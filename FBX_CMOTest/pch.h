@@ -27,12 +27,6 @@
 #define NOHELP
 
 #define WIN32_LEAN_AND_MEAN
-#ifdef _DEBUG
-#pragma comment(lib, "DirectXTK_d.lib")
-#else
-#pragma comment(lib, "DirectXTK.lib")
-#endif
-
 #include <windows.h>
 
 #include <wrl/client.h>
@@ -47,7 +41,15 @@
 #include <memory>
 #include <stdexcept>
 
-#include <CommonStates.h>
+#ifdef _DEBUG
+#pragma comment(lib, "DirectXTK_d.lib")
+#else
+#pragma comment(lib, "DirectXTK.lib")
+#endif
+
+#include "SpriteBatch.h"
+#include "WICTextureLoader.h"
+#include "SimpleMath.h"
 
 namespace DX
 {

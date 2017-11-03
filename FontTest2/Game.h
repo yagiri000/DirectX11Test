@@ -59,6 +59,8 @@ private:
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
 
+	std::unique_ptr<DirectX::CommonStates> m_states;
+
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
 

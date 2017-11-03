@@ -3,7 +3,8 @@
 
 using namespace DirectX;
 
-Sound::Sound()
+Sound::Sound() :
+	m_nowPlayingKey()
 {
 }
 
@@ -15,7 +16,7 @@ void Sound::Initialize()
 #ifdef _DEBUG
 	eflags = eflags | AudioEngine_Debug;
 #endif
-	ins.audEngine = std::make_unique<AudioEngine>(eflags);
+	ins.m_audEngine = std::make_unique<AudioEngine>(eflags);
 
 	Load();
 }
@@ -23,9 +24,22 @@ void Sound::Initialize()
 void Sound::Load()
 {
 	Sound& ins = Get();
+	ins.LoadSE(L"Sound.wav");
+	ins.LoadBGM(L"Bgm01.wav");
+	ins.LoadBGM(L"Bgm02.wav");
+}
 
-	ins.soundEffect = std::make_unique<SoundEffect>(ins.audEngine.get(), L"Sound.wav");
-	ins.effect = ins.soundEffect->CreateInstance();
+void Sound::LoadSE(const std::wstring& filename)
+{
+	Sound& ins = Get();
+	ins.m_seDict.emplace(filename, std::make_unique<SoundEffect>(ins.m_audEngine.get(), filename.c_str()));
+}
+
+void Sound::LoadBGM(const std::wstring& filename)
+{
+	Sound& ins = Get();
+	ins.m_seDict.emplace(filename, std::make_unique<SoundEffect>(ins.m_audEngine.get(), filename.c_str()));
+	ins.m_bgmDict.emplace(filename, m_seDict[filename]->CreateInstance());
 }
 
 Sound& Sound::Get()
@@ -38,9 +52,9 @@ void Sound::Update()
 {
 	Sound& ins = Get();
 
-	if (!ins.audEngine->Update()) {
+	if (!ins.m_audEngine->Update()) {
 		// No audio device is active
-		if (ins.audEngine->IsCriticalError()) {
+		if (ins.m_audEngine->IsCriticalError()) {
 		}
 	}
 }
@@ -48,15 +62,34 @@ void Sound::Update()
 void Sound::PlayOneShot(const std::wstring & soundName)
 {
 	Sound& ins = Get();
-
-	ins.soundEffect->Play();
+	ins.m_seDict[soundName]->Play();
 }
 
 void Sound::PlayBGM(const std::wstring & soundName)
 {
+	Sound& ins = Get();
+	StopAllBGM();
+	ins.m_bgmDict[soundName]->Play(true);
+	ins.m_nowPlayingKey = soundName;
 }
 
-void Sound::StopBGM()
+void Sound::StopAllBGM()
 {
+	Sound& ins = Get();
+	for (auto& i : ins.m_bgmDict) {
+		i.second->Stop();
+	}
+}
+
+void Sound::PauseBGM()
+{
+	Sound& ins = Get();
+	ins.m_bgmDict[ins.m_nowPlayingKey]->Pause();
+}
+
+void Sound::ResumeBGM()
+{
+	Sound& ins = Get();
+	ins.m_bgmDict[ins.m_nowPlayingKey]->Resume();
 }
 

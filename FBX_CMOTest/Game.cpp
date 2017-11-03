@@ -4,13 +4,43 @@
 
 #include "pch.h"
 #include "Game.h"
+#include <d3dcompiler.h>
+#include <algorithm>
+#include <memory>
+#include <fstream>
+#include "Utility.h"
+#include "Random.h"
 
 extern void ExitGame();
 
-using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
+
+
+struct BinFile
+{
+	BinFile(const wchar_t* fpath)
+	{
+		std::ifstream binfile(fpath, std::ios::in | std::ios::binary);
+
+		if (binfile.is_open()) {
+			int fsize = static_cast<int>(binfile.seekg(0, std::ios::end).tellg());
+			binfile.seekg(0, std::ios::beg);
+			std::unique_ptr<char> code(new char[fsize]);
+			binfile.read(code.get(), fsize);
+			nSize = fsize;
+			Bin = std::move(code);
+		}
+
+	}
+
+	const void* get() const { return Bin.get(); }
+	int size() const { return nSize; }
+private:
+	int nSize = 0;
+	std::unique_ptr<char> Bin;
+};
 
 Game::Game() :
     m_window(nullptr),
@@ -30,6 +60,12 @@ void Game::Initialize(HWND window, int width, int height)
     CreateDevice();
 
     CreateResources();
+
+	// TODO : 修正
+	// 現在グローバル領域の関数にラムダを突っ込み，Drawする部分でそれを呼んでいる
+	Utility::DrawPlane = [&](const Transform& trans) {
+	};
+
 
     // TODO: Change the timer settings if you want something other than the default variable timestep mode.
     // e.g. for 60 FPS fixed timestep update logic, call:
@@ -55,6 +91,9 @@ void Game::Update(DX::StepTimer const& timer)
 {
     float elapsedTime = float(timer.GetElapsedSeconds());
 
+	static bool pre = false;
+
+
     // TODO: Add your game logic here.
     elapsedTime;
 }
@@ -71,15 +110,77 @@ void Game::Render()
     Clear();
 
     // TODO: Add your rendering code here.
-	m_spriteBatch->Begin(SpriteSortMode_Deferred, m_states->AlphaBlend(), m_states->LinearClamp(), nullptr, m_states->CullNone());
-	const wchar_t* output = L"Hello World";
+    // Render a triangle
+	float elapsed = m_timer.GetFrameCount() / 60.0f;
 
-	Vector2 origin = m_font->MeasureString(output) / 2.f;
+	static Vector3 pos(1.0f, 0.0f, -1.0f);
+	const float Speed = 0.016f;
 
-	m_font->DrawString(m_spriteBatch.get(), output,
-		m_fontPos, DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, origin);
+	if (GetKeyState('W') & 0x80) {
+		pos += Speed * Vector3::Forward;
+	}
+	if (GetKeyState('A') & 0x80) {
+		pos += Speed * Vector3::Left;
+	}
+	if (GetKeyState('S') & 0x80) {
+		pos += Speed * Vector3::Backward;
+	}
+	if (GetKeyState('D') & 0x80) {
+		pos += Speed * Vector3::Right;
+	}
+	if (GetKeyState('E') & 0x80) {
+		pos += Speed * Vector3::Up;
+	}
+	if (GetKeyState('Q') & 0x80) {
+		pos += Speed * Vector3::Down;
+	}
+	
 
-	m_spriteBatch->End();
+	// 行列計算
+	Matrix mWorld;
+	Matrix mView;
+	Matrix mProj;
+
+	// ビュートランスフォーム（視点座標変換）
+
+	Vector3 eye(0.0f, 1.0f, 2.0f); //カメラ（視点）位置
+	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
+	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
+	mView = Matrix::CreateLookAt(eye, lookat, up);
+
+	Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
+	Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
+	//ワールドトランスフォーム（絶対座標変換）
+	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix::CreateFromQuaternion(q) * Matrix::CreateTranslation(pos);
+
+	// プロジェクショントランスフォーム（射影変換）
+	int width, height;
+	Game::GetDefaultSize(width, height);
+	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
+
+	// 使用シェーダー登録
+	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+
+	// コンスタントバッファーに各種データを渡す
+	D3D11_MAPPED_SUBRESOURCE pData;
+	SIMPLESHADER_CONSTANT_BUFFER cb;
+	if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+		//ワールド、カメラ、射影行列を渡す
+		XMMATRIX m = mWorld*mView*mProj;
+		m = XMMatrixTranspose(m);
+		
+		cb.mWVP = m;
+
+		memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+		m_context->Unmap(m_constantBuffer.Get(), 0);
+	}
+
+	//このコンスタントバッファーを、どのシェーダーで使うかを指定
+	m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+	m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+
+	m_context.Get()->Draw(4, 0);
 
     Present();
 }
@@ -88,14 +189,24 @@ void Game::Render()
 void Game::Clear()
 {
     // Clear the views.
-    m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
-    m_d3dContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+    m_context->ClearRenderTargetView(m_renderTargetView.Get(), Color(0.1f, 0.1f, 0.1f));
+    m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-    m_d3dContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+    m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 
     // Set the viewport.
     CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(m_outputWidth), static_cast<float>(m_outputHeight));
-    m_d3dContext->RSSetViewports(1, &viewport);
+    m_context->RSSetViewports(1, &viewport);
+
+	//ラスタライズ設定
+	D3D11_RASTERIZER_DESC rdc;
+	ZeroMemory(&rdc, sizeof(rdc));
+	rdc.CullMode = D3D11_CULL_NONE;
+	rdc.FillMode = D3D11_FILL_SOLID;
+	rdc.FrontCounterClockwise = TRUE;
+
+	m_device->CreateRasterizerState(&rdc, m_rasterizerState.GetAddressOf());
+	m_context->RSSetState(m_rasterizerState.Get());
 }
 
 // Presents the back buffer contents to the screen.
@@ -219,16 +330,13 @@ void Game::CreateDevice()
     }
 #endif
 
-    DX::ThrowIfFailed(device.As(&m_d3dDevice));
-    DX::ThrowIfFailed(context.As(&m_d3dContext));
+    DX::ThrowIfFailed(device.As(&m_device));
+    DX::ThrowIfFailed(context.As(&m_context));
 
     // TODO: Initialize device dependent objects here (independent of window size).
 
-	m_font = std::make_unique<SpriteFont>(m_d3dDevice.Get(), L"myfile.spritefont");
-	m_spriteBatch = std::make_unique<SpriteBatch>(m_d3dContext.Get());
 
 
-	m_states.reset(new CommonStates(m_d3dDevice.Get()));
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -236,10 +344,10 @@ void Game::CreateResources()
 {
     // Clear the previous window size specific context.
     ID3D11RenderTargetView* nullViews [] = { nullptr };
-    m_d3dContext->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
+    m_context->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
     m_renderTargetView.Reset();
     m_depthStencilView.Reset();
-    m_d3dContext->Flush();
+    m_context->Flush();
 
     UINT backBufferWidth = static_cast<UINT>(m_outputWidth);
     UINT backBufferHeight = static_cast<UINT>(m_outputHeight);
@@ -270,7 +378,7 @@ void Game::CreateResources()
     {
         // First, retrieve the underlying DXGI Device from the D3D Device.
         ComPtr<IDXGIDevice1> dxgiDevice;
-        DX::ThrowIfFailed(m_d3dDevice.As(&dxgiDevice));
+        DX::ThrowIfFailed(m_device.As(&dxgiDevice));
 
         // Identify the physical adapter (GPU or card) this device is running on.
         ComPtr<IDXGIAdapter> dxgiAdapter;
@@ -295,7 +403,7 @@ void Game::CreateResources()
 
         // Create a SwapChain from a Win32 window.
         DX::ThrowIfFailed(dxgiFactory->CreateSwapChainForHwnd(
-            m_d3dDevice.Get(),
+            m_device.Get(),
             m_window,
             &swapChainDesc,
             &fsSwapChainDesc,
@@ -312,35 +420,128 @@ void Game::CreateResources()
     DX::ThrowIfFailed(m_swapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf())));
 
     // Create a view interface on the rendertarget to use on bind.
-    DX::ThrowIfFailed(m_d3dDevice->CreateRenderTargetView(backBuffer.Get(), nullptr, m_renderTargetView.ReleaseAndGetAddressOf()));
+    DX::ThrowIfFailed(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_renderTargetView.ReleaseAndGetAddressOf()));
 
     // Allocate a 2-D surface as the depth/stencil buffer and
     // create a DepthStencil view on this surface to use on bind.
     CD3D11_TEXTURE2D_DESC depthStencilDesc(depthBufferFormat, backBufferWidth, backBufferHeight, 1, 1, D3D11_BIND_DEPTH_STENCIL);
 
     ComPtr<ID3D11Texture2D> depthStencil;
-    DX::ThrowIfFailed(m_d3dDevice->CreateTexture2D(&depthStencilDesc, nullptr, depthStencil.GetAddressOf()));
+    DX::ThrowIfFailed(m_device->CreateTexture2D(&depthStencilDesc, nullptr, depthStencil.GetAddressOf()));
 
     CD3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc(D3D11_DSV_DIMENSION_TEXTURE2D);
-    DX::ThrowIfFailed(m_d3dDevice->CreateDepthStencilView(depthStencil.Get(), &depthStencilViewDesc, m_depthStencilView.ReleaseAndGetAddressOf()));
+    DX::ThrowIfFailed(m_device->CreateDepthStencilView(depthStencil.Get(), &depthStencilViewDesc, m_depthStencilView.ReleaseAndGetAddressOf()));
 
     // TODO: Initialize windows-size dependent objects here.
-	m_fontPos.x = backBufferWidth / 2.f;
-	m_fontPos.y = backBufferHeight / 2.f;
+	// 以下，追加した関数群
+
+
+	// TODO : 例外処理が妥当か確認する．適当に書き直したので合っているかわからない
+	HRESULT hr;
+
+
+	//シェーダー読み込み
+	BinFile vscode(L"..\\data\\VertexShader.cso");
+	BinFile pscode(L"..\\data\\PixelShader.cso");
+
+	// 頂点シェーダ作成
+	//  メモ：シェーダーをデバッグ情報ありでコンパイルすると
+	//　　　　ここでエラー発生　CREATEVERTEXSHADER_INVALIDSHADERBYTECODE
+	hr = m_device.Get()->CreateVertexShader(vscode.get(), vscode.size(), NULL, m_vertexShader.GetAddressOf());
+	if (FAILED(hr)) {
+		return DX::ThrowIfFailed(hr);
+	}
+
+	// ピクセルシェーダ作成
+	hr = m_device.Get()->CreatePixelShader(pscode.get(), pscode.size(), NULL, m_pixelShader.GetAddressOf());
+	if (FAILED(hr)) {
+		return DX::ThrowIfFailed(hr);
+	}
+
+	// 入力レイアウト定義
+	D3D11_INPUT_ELEMENT_DESC layout[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	UINT elem_num = ARRAYSIZE(layout);
+
+	// 入力レイアウト作成
+	hr = m_device.Get()->CreateInputLayout(layout, elem_num, vscode.get(),
+		vscode.size(), m_vertexLayout.GetAddressOf());
+	if (FAILED(hr)) {
+		return DX::ThrowIfFailed(hr);
+	}
+
+	// Set the input layout
+	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
+
+
+
+	// Create vertex buffer
+	SimpleVertex vertices[] =
+	{
+		XMFLOAT3(-0.5,-0.5,0),//頂点1	
+		XMFLOAT3(-0.5,0.5,0), //頂点2
+		XMFLOAT3(0.5,-0.5,0),  //頂点3
+		XMFLOAT3(0.5,0.5,0), //頂点4	
+	};
+	D3D11_BUFFER_DESC bd;
+	ZeroMemory(&bd, sizeof(bd));
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(SimpleVertex) * 4;
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = 0;
+	D3D11_SUBRESOURCE_DATA InitData;
+	ZeroMemory(&InitData, sizeof(InitData));
+	InitData.pSysMem = vertices;
+	hr = m_device.Get()->CreateBuffer(&bd, &InitData, m_vertexBuffer.GetAddressOf());
+	if (FAILED(hr))
+		return DX::ThrowIfFailed(hr);
+
+	// Set vertex buffer
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+
+	// Set primitive topology
+	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	// コンスタントバッファー作成　シェーダーに変換行列を渡す用
+
+	//コンスタントバッファー作成　ここでは変換行列渡し用
+	D3D11_BUFFER_DESC cb;
+	cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cb.ByteWidth = sizeof(SIMPLESHADER_CONSTANT_BUFFER);
+	cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cb.MiscFlags = 0;
+	cb.StructureByteStride = 0;
+	cb.Usage = D3D11_USAGE_DYNAMIC;
+
+	{
+		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
+		if (FAILED(hr)) {
+			return DX::ThrowIfFailed(hr);
+		}
+	}
 }
 
 void Game::OnDeviceLost()
 {
     // TODO: Add Direct3D resource cleanup here.
-	m_states.reset();
-	m_spriteBatch.reset();
-	m_font.reset();
 
+	m_constantBuffer.Reset();
+	m_vertexShader.Reset();
+	m_pixelShader.Reset();
+	m_vertexLayout.Reset();
+	m_vertexBuffer.Reset();
+
+	m_rasterizerState.Reset();
     m_depthStencilView.Reset();
     m_renderTargetView.Reset();
     m_swapChain.Reset();
-    m_d3dContext.Reset();
-    m_d3dDevice.Reset();
+
+    m_context.Reset();
+    m_device.Reset();
+
 
     CreateDevice();
 

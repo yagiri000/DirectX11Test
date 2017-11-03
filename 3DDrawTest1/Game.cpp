@@ -85,7 +85,7 @@ void Game::Render()
 	// Render a sprite
 	m_spriteBatch->Begin(SpriteSortMode_Deferred, m_states->NonPremultiplied());
 	m_pos = DirectX::SimpleMath::Vector2(280.0f, 240.0f);
-	m_spriteBatch->Draw(m_texture.Get(), m_pos, nullptr, Colors::White, 0.f);
+	m_spriteBatch->Draw(m_texture.Get(), m_pos, nullptr, XMVectorSet(1.0f, 1.0f, 1.0f, 0.1f), 0.f);
 	m_spriteBatch->End();
 
 	Present();

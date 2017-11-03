@@ -19,11 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <RootNamespace>Direct3D_Win32_Game1</RootNamespace>
-    <ProjectGuid>{530227aa-fe09-43b1-ae88-457e6f38f841}</ProjectGuid>
+    <RootNamespace>FBX_CMOTest</RootNamespace>
+    <ProjectGuid>{04cd3868-9a47-4602-8b41-1cf770929a77}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
-    <ProjectName>PNGDrawTest</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -54,7 +53,9 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\ImageContentTask.props" />
     <Import Project="$(VCTargetsPath)\BuildCustomizations\MeshContentTask.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\ShaderGraphContentTask.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -125,7 +126,6 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
-      <AdditionalIncludeDirectories>C:\MyLib\Inc</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -133,7 +133,6 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>d3d11.lib;dxguid.lib;uuid.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\MyLib\Lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -156,11 +155,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Easing.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Random.h" />
     <ClInclude Include="StepTimer.h" />
+    <ClInclude Include="Transform.h" />
+    <ClInclude Include="Utility.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Easing.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="pch.cpp">
@@ -169,6 +173,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Random.cpp" />
+    <ClCompile Include="Transform.cpp" />
+    <ClCompile Include="Utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -179,8 +186,24 @@
   <ItemGroup>
     <Manifest Include="settings.manifest" />
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="PixelShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="VertexShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <MeshContentTask Include="TornadoLinear.fbx">
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+    </MeshContentTask>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\ImageContentTask.targets" />
     <Import Project="$(VCTargetsPath)\BuildCustomizations\MeshContentTask.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\ShaderGraphContentTask.targets" />
   </ImportGroup>
 </Project>

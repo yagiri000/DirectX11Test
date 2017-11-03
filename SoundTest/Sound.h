@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 class Sound
 {
@@ -12,25 +13,31 @@ public:
 	// 各種初期化を行う
 	static void Initialize();
 
-	// リソース(wavファイル)を読み込む
 	static void Load();
+
+	// リソース(wavファイル)をSEとして読み込む
+	void LoadSE(const std::wstring & filename);
+
+	// リソース(wavファイル)をBGMとして読み込む
+	void LoadBGM(const std::wstring & filename);
 
 	static void Update();
 
 	static void PlayOneShot(const std::wstring& soundName);
-	
+
+	// 現在のBGMを停止し、次のBGMを開始する
 	static void PlayBGM(const std::wstring& soundName);
 
-	static void StopBGM();
+	static void StopAllBGM();
 
-	// TODO : 実装
-	//static void PauseBGM();
+	static void PauseBGM();
 
-	//static void UnPauseBGM();
+	static void ResumeBGM();
 
 private:
 	static Sound& Get();
-	std::unique_ptr<DirectX::AudioEngine> audEngine;
-	std::unique_ptr<DirectX::SoundEffect> soundEffect;
-	std::unique_ptr<DirectX::SoundEffectInstance> effect;
+	std::unique_ptr<DirectX::AudioEngine> m_audEngine;
+	std::unordered_map<std::wstring, std::unique_ptr<DirectX::SoundEffect>> m_seDict;
+	std::unordered_map<std::wstring, std::unique_ptr<DirectX::SoundEffectInstance>> m_bgmDict;
+	std::wstring m_nowPlayingKey;
 };

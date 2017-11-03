@@ -67,12 +67,24 @@ void Game::Update(DX::StepTimer const& timer)
 	Input::Update();
 	Sound::Update();
 
-	Font::DrawQueue(L"hoge", Input::GetMousePos());
-	Font::DrawQueue(L"hoge", Input::GetMousePos() + Vector2(100.0f, 100.0f));
 
-	if (Input::GetKeyDown(Keyboard::Keys::Z)) {
-		Sound::PlayOneShot(L"Sound.wav");
+	static std::wstring log;
+	Font::DrawQueue(log, Vector2(20.0f, 20.0f));
+
+	if (Input::GetKeyDown(Keyboard::Z)) {
+		Sound::PlayBGM(L"Bgm01.wav");
+		log += L"play, \n";
 	}
+	if (Input::GetKeyDown(Keyboard::X)) {
+		Sound::PauseBGM();
+		log += L"pause,  \n";
+	}
+	if (Input::GetKeyDown(Keyboard::C)) {
+		Sound::ResumeBGM();
+		log += L"resume,  \n";
+	}
+
+	
 }
 
 // Draws the scene.
