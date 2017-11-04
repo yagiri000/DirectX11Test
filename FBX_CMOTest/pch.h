@@ -47,9 +47,9 @@
 #pragma comment(lib, "DirectXTK.lib")
 #endif
 
-#include "SpriteBatch.h"
-#include "WICTextureLoader.h"
-#include "SimpleMath.h"
+#include <SpriteBatch.h>
+#include <WICTextureLoader.h>
+#include <SimpleMath.h>
 #include <Model.h>
 #include <Effects.h>
 #include <CommonStates.h>

@@ -10,6 +10,8 @@
 #include <fstream>
 #include "Utility.h"
 #include "Random.h"
+#include "Resource.h"
+#include "Camera.h"
 
 extern void ExitGame();
 
@@ -113,7 +115,7 @@ void Game::Render()
     // Render a triangle
 	float elapsed = m_timer.GetFrameCount() / 60.0f;
 
-	static Vector3 pos(1.0f, 0.0f, -1.0f);
+	static Vector3 pos(0.0f, 0.0f, 5.0f);
 	const float Speed = 0.016f;
 
 	if (GetKeyState('W') & 0x80) {
@@ -134,55 +136,42 @@ void Game::Render()
 	if (GetKeyState('Q') & 0x80) {
 		pos += Speed * Vector3::Down;
 	}
-	
+
+
+	static float xRotate = 0.0f;
+	const float rotSpeed = 0.016f;
+
+	if (GetKeyState('Z') & 0x80) {
+		xRotate += rotSpeed;
+	}
+	if (GetKeyState('X') & 0x80) {
+		xRotate -= rotSpeed;
+	}
 
 	// 行列計算
 	Matrix mWorld;
-	Matrix mView;
-	Matrix mProj;
+
+	//ワールドトランスフォーム（絶対座標変換）
+	//mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix() * Matrix::CreateTranslation(pos);
+	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix() * Matrix();
 
 	// ビュートランスフォーム（視点座標変換）
+	//Vector3 eye(0.0f, 2.0f, 5.0f); //カメラ（視点）位置
+	//Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
+	//Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
+	//mView = Matrix::CreateLookAt(eye, lookat, up);
 
-	Vector3 eye(0.0f, 2.0f, 5.0f); //カメラ（視点）位置
-	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
-	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
-	mView = Matrix::CreateLookAt(eye, lookat, up);
-
-	Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
-	Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
-	//ワールドトランスフォーム（絶対座標変換）
-	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix::CreateFromQuaternion(q) * Matrix::CreateTranslation(pos);
 
 	// プロジェクショントランスフォーム（射影変換）
-	int width, height;
-	Game::GetDefaultSize(width, height);
-	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
+	//int width, height;
+	//Game::GetDefaultSize(width, height);
+	//mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
-	//// 使用シェーダー登録
-	//m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-	//m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+	
+	Camera::SetProjectionInfo(XM_PI / 4.0f, 0.1f, 1000.0f);
+	Camera::SetTransform(Transform(Vector3(pos), Vector3::One, Quaternion::CreateFromYawPitchRoll(0.0f, 0.0f, 0.0f)));
 
-	//// コンスタントバッファーに各種データを渡す
-	//D3D11_MAPPED_SUBRESOURCE pData;
-	//SIMPLESHADER_CONSTANT_BUFFER cb;
-	//if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
-	//	//ワールド、カメラ、射影行列を渡す
-	//	XMMATRIX m = mWorld*mView*mProj;
-	//	m = XMMatrixTranspose(m);
-	//	
-	//	cb.mWVP = m;
-
-	//	memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-	//	m_context->Unmap(m_constantBuffer.Get(), 0);
-	//}
-
-	////このコンスタントバッファーを、どのシェーダーで使うかを指定
-	//m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-	//m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
-
-	//m_context.Get()->Draw(24, 0);
-
-	m_model->Draw(m_context.Get(), *m_states, mWorld, mView, mProj);
+	Resource::Draw(m_context.Get(), L"EnemyBee.cmo", mWorld);
 
     Present();
 }
@@ -526,28 +515,8 @@ void Game::CreateResources()
 		}
 	}
 
-	m_states = std::make_unique<CommonStates>(m_device.Get());
-
-	m_fxFactory = std::make_unique<EffectFactory>(m_device.Get());
-
-	m_model = Model::CreateFromCMO(m_device.Get(), L"../Debug/EnemyBee.cmo", *m_fxFactory);
-
-	{
-		for (auto& i : m_model->meshes) {
-			for (auto& j : i->meshParts) {
-				UINT stride = j->vertexStride;
-				UINT offset = j->vertexOffset;
-				m_context.Get()->IASetVertexBuffers(0, 1, j->vertexBuffer.GetAddressOf(), &stride, &offset);
-
-				// Set primitive topology
-				m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-				m_context.Get()->IASetIndexBuffer(j->indexBuffer.Get(),
-					DXGI_FORMAT_R16_UINT, //各インデックスは、1 つの 16 ビット符号なし整数 (short) です。
-					0
-				);
-			}
-		}
-	}
+	Resource::Initialize(m_device.Get());
+	Resource::Load(m_device.Get());
 }
 
 void Game::OnDeviceLost()
