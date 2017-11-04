@@ -31,6 +31,7 @@ public:
 	std::function<float(float, float, float)> m_easing;
 
 	MinMaxCurveRotation();
+	MinMaxCurveRotation(const Quaternion& rot);
 	MinMaxCurveRotation(const Quaternion& min, const Quaternion& max);
 	MinMaxCurveRotation(const Quaternion& min, const Quaternion& max, const std::function<float(float, float, float)>& easing);
 	Quaternion Get(float rate) const;

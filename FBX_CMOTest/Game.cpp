@@ -345,7 +345,6 @@ void Game::CreateDevice()
 
 	for (auto&& i : m_model->meshes) {
 		for (auto&& j : i->meshParts) {
-			j->indexFormat;
 		}
 	}
 

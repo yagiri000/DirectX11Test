@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Random.h"
 
+double Random::PI = 3.14159265359;
 
 //class Random
 Random::Random()
@@ -124,21 +125,10 @@ double Random::NormalDist(double ave, double range)
 	return ret;
 }
 
-//ƒ‰ƒWƒAƒ“‚Åæ“¾
-double Random::FRadRand()
-{
-	return Range(-3.14159265359, 3.14159265359);
-}
-
-double Random::FRadRand(double deg_min, double deg_max)
-{
-	return Range(deg_min, deg_max);
-}
-
 //”¼Œar‚Ì‰~ã‚Ì“_‚ğ•Ô‚·
 void Random::OnCircle(double r, double &x, double &y)
 {
-	double randang = FRadRand();
+	double randang = Range(-PI, PI);
 	x = r * cos(randang);
 	y = r * sin(randang);
 }
@@ -146,7 +136,7 @@ void Random::OnCircle(double r, double &x, double &y)
 //”¼Œar‚Ì‰~ã‚Ì“_‚ğ•Ô‚·@Œ´“_‚©‚ç‚ÌŠp“x‚à•Ô‚·
 void Random::OnCircle(double r, double &x, double &y, double &ang)
 {
-	double randang = FRadRand();
+	double randang = Range(-PI, PI);
 	x = r * cos(randang);
 	y = r * sin(randang);
 	ang = randang;
@@ -155,7 +145,7 @@ void Random::OnCircle(double r, double &x, double &y, double &ang)
 //”¼Œar‚Ì‰~“à•”‚Ì“_‚ğ•Ô‚·
 void Random::InCircle(double r, double &x, double &y)
 {
-	double randang = FRadRand();
+	double randang = Range(-PI, PI);
 	double rr = r * Value();
 	x = rr * cos(randang);
 	y = rr * sin(randang);
@@ -164,7 +154,7 @@ void Random::InCircle(double r, double &x, double &y)
 //”¼Œar‚Ì‰~“à•”‚Ì“_‚ğ•Ô‚·@Œ´“_‚©‚ç‚ÌŠp“x‚à•Ô‚·
 void Random::InCircle(double r, double &x, double &y, double &ang)
 {
-	double randang = FRadRand();
+	double randang = Range(-PI, PI);
 	double rr = r * Value();
 	x = rr * cos(randang);
 	y = rr * sin(randang);
@@ -175,7 +165,7 @@ void Random::InCircle(double r, double &x, double &y, double &ang)
 Vector2 Random::OnCircle(double r)
 {
 	Vector2 temp;
-	double randang = FRadRand();
+	double randang = Range(-PI, PI);
 	temp.x = r * cos(randang);
 	temp.y = r * sin(randang);
 	return temp;
@@ -186,7 +176,7 @@ Vector2 Random::OnCircle(double r1, double r2)
 {
 	Vector2 temp;
 	double r = Random::Range(r1, r2);
-	double randang = FRadRand();
+	double randang = Range(-PI, PI);
 	temp.x = r * cos(randang);
 	temp.y = r * sin(randang);
 	return temp;
@@ -196,7 +186,7 @@ Vector2 Random::OnCircle(double r1, double r2)
 Vector2 Random::InCircle(double r)
 {
 	Vector2 temp;
-	double randang = FRadRand();
+	double randang = Range(-PI, PI);
 	double rr = r * Value();
 	temp.x = rr * cos(randang);
 	temp.y = rr * sin(randang);
@@ -212,9 +202,14 @@ bool Random::Bool(double p)
 Vector3 Random::OnSphere()
 {
 	double z = Range(-1.0, 1.0);
-	double theta = FRadRand();
+	double theta = Range(-PI, PI);
 	double minusZ = sqrt(1.0 - z * z);
 	double x = minusZ * cos(theta);
 	double y = minusZ * sin(theta);
 	return Vector3(x, y, z);
+}
+
+Quaternion Random::Rotation()
+{
+	return Quaternion(Range(-1.0, 1.0), Range(-1.0, 1.0), Range(-1.0, 1.0), Range(-1.0, 1.0));
 }

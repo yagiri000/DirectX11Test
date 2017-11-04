@@ -12,6 +12,7 @@ class Random {
 private:
 	std::default_random_engine  engine;
 	Random();
+	static double PI;
 
 public:
 	Random(const Random& r) = delete;
@@ -58,12 +59,6 @@ public:
 	//正規分布 平均とレンジ指定
 	static double NormalDist(double ave, double range);
 
-	//ラジアンで取得
-	static double FRadRand();
-
-	//ラジアンで取得
-	static double FRadRand(double deg_min, double deg_max);
-
 	//半径rの円上の点を返す
 	static void OnCircle(double r, double &x, double &y);
 
@@ -90,5 +85,7 @@ public:
 
 	// 直径1の球表面上の点を返す
 	static Vector3 OnSphere();
+
+	static Quaternion Rotation();
 
 };

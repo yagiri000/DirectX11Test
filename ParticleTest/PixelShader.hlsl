@@ -3,7 +3,7 @@ Texture2D txDiffuse : register(t0);
 SamplerState samLinear : register(s0);
 
 //ƒOƒ[ƒoƒ‹
-cbuffer global
+cbuffer global : register(b0)
 {
 	float4 diffuse;
 };

@@ -1,5 +1,5 @@
 //グローバル
-cbuffer global
+cbuffer global : register(b0)
 {
 	matrix g_mW;
 	matrix g_mWVP; //ワールド、ビュー、射影の合成変換行列

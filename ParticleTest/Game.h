@@ -4,8 +4,9 @@
 
 #pragma once
 
-#include "StepTimer.h"
 #include <vector>
+#include <memory>
+#include "StepTimer.h"
 #include "Particle.h"
 #include "DrawInfo.h"
 
@@ -98,8 +99,11 @@ private:
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
 
-	std::vector<Particle>			m_particles;
-	std::vector<DrawInfo>			m_drawOrder;
+	static const size_t InitialQueueSize = 4096;
+
+	std::vector<std::unique_ptr<Particle>>			m_particles;
+	std::unique_ptr<DrawInfo[]>					m_renderQueue;
+	int m_renderQueueCount;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;

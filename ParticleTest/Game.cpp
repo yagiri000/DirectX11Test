@@ -47,7 +47,8 @@ Game::Game() :
 	m_window(nullptr),
 	m_outputWidth(800),
 	m_outputHeight(600),
-	m_featureLevel(D3D_FEATURE_LEVEL_9_1)
+	m_featureLevel(D3D_FEATURE_LEVEL_9_1),
+	m_renderQueue(new DrawInfo[InitialQueueSize])
 {
 }
 
@@ -113,15 +114,14 @@ void Game::Initialize(HWND window, int width, int height)
 		Game::GetDefaultSize(width, height);
 		mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
-		DrawInfo di;
+		DrawInfo& di = m_renderQueue[m_renderQueueCount];
 		di.world = mWorld;
 		di.view = mView;
 		di.proj = mProj;
 		di.vertexCount = 4;
 		di.color = color;
 
-		m_drawOrder.emplace_back(di);
-
+		m_renderQueueCount++;
 	};
 
 	// TODO: Change the timer settings if you want something other than the default variable timestep mode.
@@ -153,7 +153,7 @@ void Game::Update(DX::StepTimer const& timer)
 		for (size_t i = 0; i < 2; i++) {
 
 			m_particles.emplace_back(
-				Particle(
+				std::make_unique<Particle>(
 					Random::OnSphere() * 0.1f,
 					Random::OnSphere() *  Random::Range(0.0f, 0.15f) + Vector3::Up * Random::Range(1.0f, 2.0f),
 					Vector3::Down * 0.5f,
@@ -171,15 +171,15 @@ void Game::Update(DX::StepTimer const& timer)
 						MinMaxCurve(1.0f, 0.0f)
 					),
 					Random::Range(0.5f, 1.0f)
-				)
+					)
 			);
 		}
 	}
 	if (GetKeyState('X') & 0x80) {
-		for (size_t i = 0; i < 10; i++) {
+		for (size_t i = 0; i < 3; i++) {
 
 			m_particles.emplace_back(
-				Particle(
+				std::make_unique<Particle>(
 					Random::OnSphere() * 0.0f,
 					Random::OnSphere() * Random::Range(3.0f, 4.0f),
 					Vector3::Down * 9.0f,
@@ -197,15 +197,48 @@ void Game::Update(DX::StepTimer const& timer)
 						MinMaxCurve(1.0f, 0.0f)
 					),
 					Random::Range(0.5f, 1.0f)
-				)
+					)
 			);
 		}
+	}
+	if (GetKeyState('C') & 0x80) {
+		m_particles.emplace_back(
+			std::make_unique<Particle>(
+				Random::OnSphere() * Random::Range(0.3f, 0.6f),
+				Random::OnSphere() * 0.0f,
+				Vector3::Zero,
+				MinMaxCurve4(
+					MinMaxCurve(0.5f, 3.0f),
+					MinMaxCurve(0.2f, 0.0f),
+					MinMaxCurve(0.4f, 0.0f),
+					MinMaxCurve(0.4f, 1.0f)
+				),
+				MinMaxCurveRotation(
+					Random::Rotation()
+				),
+				MinMaxCurve4(
+					MinMaxCurve(0.0f, 0.0f),
+					MinMaxCurve(0.0f, 0.5f),
+					MinMaxCurve(1.0f, 0.1f),
+					MinMaxCurve(1.0f, 0.0f)
+				),
+				0.12f
+				)
+		);
 	}
 	pre = GetKeyState('Z') & 0x80;
 
 	for (auto&& i : m_particles) {
-		i.Update(1.0f / 60.0f);
+		i->Update(1.0f / 60.0f);
 	}
+
+
+	auto it = std::remove_if(m_particles.begin(), m_particles.end(), []
+	(const std::unique_ptr<Particle>& a) {
+		return a->IsDead();
+	});
+
+	m_particles.erase(it, m_particles.end());
 
 	// TODO: Add your game logic here.
 	elapsedTime;
@@ -224,18 +257,27 @@ void Game::Render()
 	// TODO: Add your rendering code here.
 	// Render a triangle
 
+	m_renderQueueCount = 0;
+
 	for (auto&& i : m_particles) {
-		i.Draw();
+		i->Draw();
 	}
 
+	static std::vector<DrawInfo const*> sorted;
+	sorted.clear();
 
-	std::sort(m_drawOrder.begin(), m_drawOrder.end(), [](const DrawInfo& a, const DrawInfo& b) {
-		Matrix am = a.world * a.view * a.proj;
-		Matrix bm = b.world * b.view * b.proj;
+
+	for (size_t i = 0; i < m_renderQueueCount; i++) {
+		sorted.emplace_back(&m_renderQueue[i]);
+	}
+
+	std::sort(sorted.begin(), sorted.end(), [](DrawInfo const* a, DrawInfo const* b) {
+		Matrix am = a->world * a->view * a->proj;
+		Matrix bm = b->world * b->view * b->proj;
 		return am._43 > bm._43;
 	});
 
-	for (auto&&i : m_drawOrder) {
+	for (auto&& i : sorted) {
 
 		// 使用シェーダー登録
 		m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
@@ -257,10 +299,10 @@ void Game::Render()
 			SIMPLESHADER_CONSTANT_BUFFER cb;
 			if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
 				//ワールド、カメラ、射影行列を渡す
-				XMMATRIX m = i.world*i.view*i.proj;
+				XMMATRIX m = i->world*i->view*i->proj;
 				m = XMMatrixTranspose(m);
 				cb.mWVP = m;
-				cb.mW = i.world.Transpose();
+				cb.mW = i->world.Transpose();
 
 				memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
 				m_context->Unmap(m_constantBuffer.Get(), 0);
@@ -272,7 +314,7 @@ void Game::Render()
 			D3D11_MAPPED_SUBRESOURCE pData;
 			PIXELSHADER_CONSTANT_BUFFER cb;
 			if (SUCCEEDED(m_context->Map(m_constantBufferPixel.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
-				cb.color = i.color;
+				cb.color = i->color;
 				memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
 				m_context->Unmap(m_constantBufferPixel.Get(), 0);
 			}
@@ -282,10 +324,9 @@ void Game::Render()
 		m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
 		m_context->PSSetConstantBuffers(0, 1, m_constantBufferPixel.GetAddressOf());//ピクセルシェーダーでの使う
 
-		m_context.Get()->Draw(i.vertexCount, 0);
+		m_context.Get()->Draw(i->vertexCount, 0);
 	}
 
-	m_drawOrder.clear();
 
 	Present();
 }

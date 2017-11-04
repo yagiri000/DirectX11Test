@@ -41,6 +41,13 @@ MinMaxCurveRotation::MinMaxCurveRotation() :
 {
 }
 
+MinMaxCurveRotation::MinMaxCurveRotation(const Quaternion & rot) :
+	m_start(rot),
+	m_end(rot),
+	m_easing(Easing::Linear)
+{
+}
+
 MinMaxCurveRotation::MinMaxCurveRotation(const Quaternion & start, const Quaternion & end):
 	m_start(start),
 	m_end(end),

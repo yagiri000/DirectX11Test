@@ -38,6 +38,7 @@ void Particle::Draw() const
 		return;
 	}
 	Quaternion rotation = Utility::GetCameraTransform().m_rotation;
+	rotation = m_rotationCurve.Get(rate);
 	Transform transform(m_position, (Vector3)m_scaleCurve.Get(rate), rotation);
 	Vector4 color = m_colorCurve.Get(rate);
 	Utility::DrawPlane(transform, color);
