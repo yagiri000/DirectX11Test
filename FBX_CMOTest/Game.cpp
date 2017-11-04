@@ -143,7 +143,7 @@ void Game::Render()
 
 	// ビュートランスフォーム（視点座標変換）
 
-	Vector3 eye(0.0f, 1.0f, 2.0f); //カメラ（視点）位置
+	Vector3 eye(0.0f, 2.0f, 5.0f); //カメラ（視点）位置
 	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
 	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
 	mView = Matrix::CreateLookAt(eye, lookat, up);
@@ -530,7 +530,7 @@ void Game::CreateResources()
 
 	m_fxFactory = std::make_unique<EffectFactory>(m_device.Get());
 
-	m_model = Model::CreateFromCMO(m_device.Get(), L"../Debug/a.cmo", *m_fxFactory);
+	m_model = Model::CreateFromCMO(m_device.Get(), L"../Debug/EnemyBee.cmo", *m_fxFactory);
 
 	{
 		for (auto& i : m_model->meshes) {

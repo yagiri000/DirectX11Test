@@ -14,6 +14,7 @@
     <ClInclude Include="Random.h" />
     <ClInclude Include="Transform.h" />
     <ClInclude Include="Utility.h" />
+    <ClInclude Include="Resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -23,6 +24,7 @@
     <ClCompile Include="Transform.cpp" />
     <ClCompile Include="Utility.cpp" />
     <ClCompile Include="Easing.cpp" />
+    <ClCompile Include="Resource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -42,10 +44,16 @@
     <FxCompile Include="VertexShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <MeshContentTask Include="a.fbx">
+    <MeshContentTask Include="Assets\a.fbx">
       <Filter>Assets</Filter>
     </MeshContentTask>
-    <MeshContentTask Include="TornadoLinear.fbx">
+    <MeshContentTask Include="Assets\EnemyVirus.fbx">
+      <Filter>Assets</Filter>
+    </MeshContentTask>
+    <MeshContentTask Include="Assets\EnemyJellyfish.fbx">
+      <Filter>Assets</Filter>
+    </MeshContentTask>
+    <MeshContentTask Include="Assets\EnemyBee.fbx">
       <Filter>Assets</Filter>
     </MeshContentTask>
   </ItemGroup>

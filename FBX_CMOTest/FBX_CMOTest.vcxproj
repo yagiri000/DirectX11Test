@@ -159,6 +159,7 @@
     <ClInclude Include="Game.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Random.h" />
+    <ClInclude Include="Resource.h" />
     <ClInclude Include="StepTimer.h" />
     <ClInclude Include="Transform.h" />
     <ClInclude Include="Utility.h" />
@@ -174,6 +175,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Random.cpp" />
+    <ClCompile Include="Resource.cpp" />
     <ClCompile Include="Transform.cpp" />
     <ClCompile Include="Utility.cpp" />
   </ItemGroup>
@@ -195,8 +197,10 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <MeshContentTask Include="a.fbx" />
-    <MeshContentTask Include="TornadoLinear.fbx" />
+    <MeshContentTask Include="Assets\a.fbx" />
+    <MeshContentTask Include="Assets\EnemyBee.fbx" />
+    <MeshContentTask Include="Assets\EnemyJellyfish.fbx" />
+    <MeshContentTask Include="Assets\EnemyVirus.fbx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
