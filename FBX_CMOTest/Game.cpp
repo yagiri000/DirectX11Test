@@ -158,29 +158,31 @@ void Game::Render()
 	Game::GetDefaultSize(width, height);
 	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
-	// 使用シェーダー登録
-	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+	//// 使用シェーダー登録
+	//m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	//m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
 
-	// コンスタントバッファーに各種データを渡す
-	D3D11_MAPPED_SUBRESOURCE pData;
-	SIMPLESHADER_CONSTANT_BUFFER cb;
-	if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
-		//ワールド、カメラ、射影行列を渡す
-		XMMATRIX m = mWorld*mView*mProj;
-		m = XMMatrixTranspose(m);
-		
-		cb.mWVP = m;
+	//// コンスタントバッファーに各種データを渡す
+	//D3D11_MAPPED_SUBRESOURCE pData;
+	//SIMPLESHADER_CONSTANT_BUFFER cb;
+	//if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+	//	//ワールド、カメラ、射影行列を渡す
+	//	XMMATRIX m = mWorld*mView*mProj;
+	//	m = XMMatrixTranspose(m);
+	//	
+	//	cb.mWVP = m;
 
-		memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-		m_context->Unmap(m_constantBuffer.Get(), 0);
-	}
+	//	memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+	//	m_context->Unmap(m_constantBuffer.Get(), 0);
+	//}
 
-	//このコンスタントバッファーを、どのシェーダーで使うかを指定
-	m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-	m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+	////このコンスタントバッファーを、どのシェーダーで使うかを指定
+	//m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+	//m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
 
-	m_context.Get()->Draw(4, 0);
+	//m_context.Get()->Draw(24, 0);
+
+	m_model->Draw(m_context.Get(), *m_states, mWorld, mView, mProj);
 
     Present();
 }
@@ -336,17 +338,7 @@ void Game::CreateDevice()
     // TODO: Initialize device dependent objects here (independent of window size).
 
 
-	// TODO : 検証用なので消す
-	auto m_states = std::make_unique<CommonStates>(m_device.Get());
 
-	auto m_fxFactory = std::make_unique<EffectFactory>(m_device.Get());
-
-	auto m_model = Model::CreateFromCMO(m_device.Get(), L"../Debug/a.cmo", *m_fxFactory);
-
-	for (auto&& i : m_model->meshes) {
-		for (auto&& j : i->meshParts) {
-		}
-	}
 
 
 }
@@ -453,8 +445,8 @@ void Game::CreateResources()
 
 
 	//シェーダー読み込み
-	BinFile vscode(L"..\\data\\VertexShader.cso");
-	BinFile pscode(L"..\\data\\PixelShader.cso");
+	BinFile vscode(L"..\\Debug\\VertexShader.cso");
+	BinFile pscode(L"..\\Debug\\PixelShader.cso");
 
 	// 頂点シェーダ作成
 	//  メモ：シェーダーをデバッグ情報ありでコンパイルすると
@@ -485,7 +477,6 @@ void Game::CreateResources()
 
 	// Set the input layout
 	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
-
 
 
 	// Create vertex buffer
@@ -532,6 +523,29 @@ void Game::CreateResources()
 		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
 		if (FAILED(hr)) {
 			return DX::ThrowIfFailed(hr);
+		}
+	}
+
+	m_states = std::make_unique<CommonStates>(m_device.Get());
+
+	m_fxFactory = std::make_unique<EffectFactory>(m_device.Get());
+
+	m_model = Model::CreateFromCMO(m_device.Get(), L"../Debug/a.cmo", *m_fxFactory);
+
+	{
+		for (auto& i : m_model->meshes) {
+			for (auto& j : i->meshParts) {
+				UINT stride = j->vertexStride;
+				UINT offset = j->vertexOffset;
+				m_context.Get()->IASetVertexBuffers(0, 1, j->vertexBuffer.GetAddressOf(), &stride, &offset);
+
+				// Set primitive topology
+				m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+				m_context.Get()->IASetIndexBuffer(j->indexBuffer.Get(),
+					DXGI_FORMAT_R16_UINT, //各インデックスは、1 つの 16 ビット符号なし整数 (short) です。
+					0
+				);
+			}
 		}
 	}
 }
