@@ -113,17 +113,17 @@ void Game::Render()
 	Matrix mView;
 	Matrix mProj;
 
-	// ビュートランスフォーム（視点座標変換）
+	//ワールドトランスフォーム（絶対座標変換）
+	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) 
+		* Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up) 
+		* Matrix::CreateTranslation(pos);
 
+	// ビュートランスフォーム（視点座標変換）
 	Vector3 eye(0.0f, 1.0f, 2.0f); //カメラ（視点）位置
 	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
 	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
 	mView = Matrix::CreateLookAt(eye, lookat, up);
 
-	Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
-	Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
-	//ワールドトランスフォーム（絶対座標変換）
-	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix::CreateFromQuaternion(q) * Matrix::CreateTranslation(pos);
 
 	// プロジェクショントランスフォーム（射影変換）
 	int width, height;

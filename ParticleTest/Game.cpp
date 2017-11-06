@@ -176,7 +176,7 @@ void Game::Update(DX::StepTimer const& timer)
 		}
 	}
 	if (GetKeyState('X') & 0x80) {
-		for (size_t i = 0; i < 3; i++) {
+		for (size_t i = 0; i < 15; i++) {
 
 			m_particles.emplace_back(
 				std::make_unique<Particle>(
@@ -264,21 +264,28 @@ void Game::Render()
 	}
 
 	static std::vector<DrawInfo const*> sorted;
-	sorted.clear();
-
-
-	for (size_t i = 0; i < m_renderQueueCount; i++) {
-		sorted.emplace_back(&m_renderQueue[i]);
+	if (sorted.size() < m_particles.size()) {
+		sorted.resize(m_particles.size());
 	}
 
-	std::sort(sorted.begin(), sorted.end(), [](DrawInfo const* a, DrawInfo const* b) {
-		Matrix am = a->world * a->view * a->proj;
-		Matrix bm = b->world * b->view * b->proj;
-		return am._43 > bm._43;
+	for (size_t i = 0; i < m_renderQueueCount; i++) {
+		sorted[i] = &m_renderQueue[i];
+	}
+
+	std::sort(sorted.begin(), sorted.begin() + m_renderQueueCount, [](DrawInfo const* a, DrawInfo const* b) {
+#if 0
+		Matrix am = a->world * a->view;
+		Matrix bm = b->world * b->view;
+		return am._43 < bm._43;
+#else
+		float a43 = a->world._41 * a->view._13 + a->world._42 * a->view._23 + a->world._43 * a->view._33 + a->world._44 * a->view._43;
+		float b43 = b->world._41 * b->view._13 + b->world._42 * b->view._23 + b->world._43 * b->view._33 + b->world._44 * b->view._43;
+		return a43 < b43;
+#endif
 	});
 
-	for (auto&& i : sorted) {
-
+	for (size_t count = 0; count < m_renderQueueCount; count++) {
+		const DrawInfo* i = sorted[count];
 		// 使用シェーダー登録
 		m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
 		m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
@@ -522,7 +529,7 @@ void Game::CreateResources()
 	UINT backBufferHeight = static_cast<UINT>(m_outputHeight);
 	DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
 	DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	UINT backBufferCount = 2;
+	UINT backBufferCount = 3;
 
 	// If the swap chain already exists, resize it, otherwise create one.
 	if (m_swapChain) {
