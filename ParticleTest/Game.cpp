@@ -9,6 +9,7 @@
 #include "Utility.h"
 #include "Particle.h"
 #include "Random.h"
+#include "Font.h"
 
 extern void ExitGame();
 
@@ -127,9 +128,16 @@ void Game::Initialize(HWND window, int width, int height)
 	// TODO: Change the timer settings if you want something other than the default variable timestep mode.
 	// e.g. for 60 FPS fixed timestep update logic, call:
 	/*
+	*/
+
+#if 0
+
 	m_timer.SetFixedTimeStep(true);
 	m_timer.SetTargetElapsedSeconds(1.0 / 60);
-	*/
+#endif // 0
+
+
+	Font::Initialize(m_device.Get(), m_context.Get(), L"myfile.spritefont");
 }
 
 // Executes the basic game loop.
@@ -176,7 +184,7 @@ void Game::Update(DX::StepTimer const& timer)
 		}
 	}
 	if (GetKeyState('X') & 0x80) {
-		for (size_t i = 0; i < 15; i++) {
+		for (size_t i = 0; i < 20; i++) {
 
 			m_particles.emplace_back(
 				std::make_unique<Particle>(
@@ -257,6 +265,9 @@ void Game::Render()
 	// TODO: Add your rendering code here.
 	// Render a triangle
 
+	Font::DrawQueue(L"FPS:" + std::to_wstring(m_timer.GetFramesPerSecond()), Vector2(30.0f, 30.0f));
+	Font::DrawQueue(L"NUM:" + std::to_wstring(m_particles.size()), Vector2(30.0f, 62.0f));
+
 	m_renderQueueCount = 0;
 
 	for (auto&& i : m_particles) {
@@ -284,21 +295,35 @@ void Game::Render()
 #endif
 	});
 
+	// Set the input layout
+	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
+
+	// Set vertex buffer
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+
+	// Set primitive topology
+	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	m_context->OMSetBlendState(m_blendState.Get(), NULL, 0xffffffff);
+
+	// 使用シェーダー登録
+	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+
+	// サンプラー
+	UINT smp_slot = 0;
+	ID3D11SamplerState* smp[1] = { pSampler.Get() };
+	m_context->PSSetSamplers(smp_slot, 1, smp);
+
+	// シェーダーリソースビュー（テクスチャ）
+	UINT srv_slot = 0;
+	ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
+	m_context->PSSetShaderResources(srv_slot, 1, srv);
+
 	for (size_t count = 0; count < m_renderQueueCount; count++) {
 		const DrawInfo* i = sorted[count];
-		// 使用シェーダー登録
-		m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-		m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
-
-		// サンプラー
-		UINT smp_slot = 0;
-		ID3D11SamplerState* smp[1] = { pSampler.Get() };
-		m_context->PSSetSamplers(smp_slot, 1, smp);
-
-		// シェーダーリソースビュー（テクスチャ）
-		UINT srv_slot = 0;
-		ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
-		m_context->PSSetShaderResources(srv_slot, 1, srv);
 
 		// VertexShader用コンスタントバッファーに各種データを渡す
 		{
@@ -332,9 +357,11 @@ void Game::Render()
 		m_context->PSSetConstantBuffers(0, 1, m_constantBufferPixel.GetAddressOf());//ピクセルシェーダーでの使う
 
 		m_context.Get()->Draw(i->vertexCount, 0);
+		//m_context.Get()->DrawInstanced(i->vertexCount, m_renderQueueCount, 0, 0);
 	}
 
 
+	Font::Batch();
 	Present();
 }
 
@@ -645,8 +672,6 @@ void Game::CreateResources()
 		return DX::ThrowIfFailed(hr);
 	}
 
-	// Set the input layout
-	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
 
 
 	// テクスチャ作成
@@ -692,13 +717,6 @@ void Game::CreateResources()
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
-	// Set vertex buffer
-	UINT stride = sizeof(SimpleVertex);
-	UINT offset = 0;
-	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-
-	// Set primitive topology
-	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//コンスタントバッファー作成　ここでは変換行列渡し用
 	{
@@ -754,15 +772,14 @@ void Game::CreateResources()
 		if (FAILED(m_device->CreateBlendState(&bd, m_blendState.GetAddressOf()))) {
 			return DX::ThrowIfFailed(E_FAIL);
 		}
-
-		UINT mask = 0xffffffff;
-		m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
 	}
 }
 
 void Game::OnDeviceLost()
 {
 	// TODO: Add Direct3D resource cleanup here.
+
+	Font::OnDeviceLost();
 
 	pShaderResView.Reset();
 	pSampler.Reset();
