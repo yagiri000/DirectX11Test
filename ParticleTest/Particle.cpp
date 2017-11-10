@@ -37,9 +37,17 @@ void Particle::Draw() const
 	if (scale.x < 0.0001f &&scale.y < 0.0001f &&scale.z < 0.0001f) {
 		return;
 	}
+
+	// Billboard or Streached Billboard
+#if 0
 	Quaternion rotation = Utility::GetCameraTransform().m_rotation;
-	// rotation = m_rotationCurve.Get(rate);
-	Transform transform(m_position, (Vector3)m_scaleCurve.Get(rate), rotation);
+#else
+	auto lookat = Matrix::CreateLookAt(Vector3::Zero, Utility::GetCameraTransform().Forward(), m_velocity);
+#endif // 0
+
+	Vector3 dir;
+	m_velocity.Normalize(dir);
+	Transform transform(m_position - dir * scale.y * 0.5f, scale, Quaternion::CreateFromRotationMatrix(lookat));
 	Vector4 color = m_colorCurve.Get(rate);
 	Utility::DrawPlane(transform, color);
 }

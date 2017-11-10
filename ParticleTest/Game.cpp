@@ -167,9 +167,9 @@ void Game::Update(DX::StepTimer const& timer)
 					Vector3::Down * 0.5f,
 					MinMaxCurve4(
 						MinMaxCurve(0.4f, 0.0f),
-						MinMaxCurve(0.4f, 0.0f),
-						MinMaxCurve(0.4f, 0.0f),
-						MinMaxCurve(0.4f, 1.0f)
+						MinMaxCurve(0.2f, 0.0f),
+						MinMaxCurve(0.2f, 0.0f),
+						MinMaxCurve(0.2f, 1.0f)
 					),
 					MinMaxCurveRotation(),
 					MinMaxCurve4(
@@ -184,23 +184,23 @@ void Game::Update(DX::StepTimer const& timer)
 		}
 	}
 	if (GetKeyState('X') & 0x80) {
-		for (size_t i = 0; i < 20; i++) {
+		for (size_t i = 0; i < 5; i++) {
 
 			m_particles.emplace_back(
 				std::make_unique<Particle>(
 					Random::OnSphere() * 0.0f,
 					Random::OnSphere() * Random::Range(3.0f, 4.0f),
-					Vector3::Down * 9.0f,
+					Vector3::Down * 0.0f,
 					MinMaxCurve4(
+						MinMaxCurve(0.03f, 0.0f),
 						MinMaxCurve(0.4f, 0.0f),
-						MinMaxCurve(0.4f, 0.0f),
-						MinMaxCurve(0.4f, 0.0f),
-						MinMaxCurve(0.4f, 1.0f)
+						MinMaxCurve(0.2f, 0.0f),
+						MinMaxCurve(0.2f, 1.0f)
 					),
 					MinMaxCurveRotation(),
 					MinMaxCurve4(
 						MinMaxCurve(0.0f, 0.0f),
-						MinMaxCurve(0.0f, 0.5f),
+						MinMaxCurve(Random::Range(0.0f, 0.5f), 0.5f),
 						MinMaxCurve(1.0f, 0.1f),
 						MinMaxCurve(1.0f, 0.0f)
 					),
