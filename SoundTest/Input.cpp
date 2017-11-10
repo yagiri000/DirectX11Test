@@ -15,7 +15,6 @@ public:
 	// TODO : unique_ptr‚É‚·‚é‚×‚«‚©H
 	Keyboard::State m_keyboardState;
 	Mouse::State m_mouseState;
-	Mouse::State m_mouseState;
 
 };
 

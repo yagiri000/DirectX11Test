@@ -35,7 +35,9 @@ void Camera::SetProjectionInfo(float fov, float nearPlane, float farPlane)
 XMMATRIX Camera::View()
 {
 	Camera& ins = Get();
-	return Matrix::CreateTranslation(-ins.m_transform.m_position) * Matrix::CreateFromQuaternion(ins.m_transform.m_rotation);
+	auto rotation = ins.m_transform.m_rotation;
+	rotation.w *= -1.0f;
+	return Matrix::CreateTranslation(-ins.m_transform.m_position) * Matrix::CreateFromQuaternion(rotation);
 }
 
 XMMATRIX Camera::Projection()

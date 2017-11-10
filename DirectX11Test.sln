@@ -1,15 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2006
+VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PNGDrawTest", "Direct3D Win32 Game1\Direct3D Win32 Game1.vcxproj", "{530227AA-FE09-43B1-AE88-457E6F38F841}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "2DSpriteDrawTest", "Direct3D Win32 Game1\Direct3D Win32 Game1.vcxproj", "{530227AA-FE09-43B1-AE88-457E6F38F841}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3DDrawTest", "3DDrawTest\3DDrawTest.vcxproj", "{562F2097-369C-4C37-9007-289254A1BC93}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3Dand2DDrawTest", "3DDrawTest1\3DDrawTest1.vcxproj", "{1C93E7B5-6CB3-4B29-8344-F07892129C58}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RenderTargetTest", "RenderTargetChangeTest\RenderTargetChangeTest.vcxproj", "{A78D4498-6833-4C9F-B66C-38D3DAABC6E4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KeyboardTest", "KeyboardTest\KeyboardTest.vcxproj", "{CA5FD2F8-9509-4B9B-941E-17EA55562AA5}"
 EndProject
@@ -29,7 +27,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GeometricPrimitiveTest", "G
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ZSortTest", "ZSortTest\ZSortTest.vcxproj", "{4D20BFB7-811D-4397-8C6F-50E4C4D42D24}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DebugFontTest", "DebugFontTest\DebugFontTest.vcxproj", "{A5ACE47A-0149-4FE4-8F9E-31D93EDDFAFC}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "_x_DebugFontTest", "DebugFontTest\DebugFontTest.vcxproj", "{A5ACE47A-0149-4FE4-8F9E-31D93EDDFAFC}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FontTest2", "FontTest2\FontTest2.vcxproj", "{5043E5B5-31F7-4674-8E91-987A72B1B678}"
 EndProject
@@ -75,14 +73,6 @@ Global
 		{1C93E7B5-6CB3-4B29-8344-F07892129C58}.Release|x64.Build.0 = Release|x64
 		{1C93E7B5-6CB3-4B29-8344-F07892129C58}.Release|x86.ActiveCfg = Release|Win32
 		{1C93E7B5-6CB3-4B29-8344-F07892129C58}.Release|x86.Build.0 = Release|Win32
-		{A78D4498-6833-4C9F-B66C-38D3DAABC6E4}.Debug|x64.ActiveCfg = Debug|x64
-		{A78D4498-6833-4C9F-B66C-38D3DAABC6E4}.Debug|x64.Build.0 = Debug|x64
-		{A78D4498-6833-4C9F-B66C-38D3DAABC6E4}.Debug|x86.ActiveCfg = Debug|Win32
-		{A78D4498-6833-4C9F-B66C-38D3DAABC6E4}.Debug|x86.Build.0 = Debug|Win32
-		{A78D4498-6833-4C9F-B66C-38D3DAABC6E4}.Release|x64.ActiveCfg = Release|x64
-		{A78D4498-6833-4C9F-B66C-38D3DAABC6E4}.Release|x64.Build.0 = Release|x64
-		{A78D4498-6833-4C9F-B66C-38D3DAABC6E4}.Release|x86.ActiveCfg = Release|Win32
-		{A78D4498-6833-4C9F-B66C-38D3DAABC6E4}.Release|x86.Build.0 = Release|Win32
 		{CA5FD2F8-9509-4B9B-941E-17EA55562AA5}.Debug|x64.ActiveCfg = Debug|x64
 		{CA5FD2F8-9509-4B9B-941E-17EA55562AA5}.Debug|x64.Build.0 = Debug|x64
 		{CA5FD2F8-9509-4B9B-941E-17EA55562AA5}.Debug|x86.ActiveCfg = Debug|Win32

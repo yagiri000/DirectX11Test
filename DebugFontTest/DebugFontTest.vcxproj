@@ -23,7 +23,7 @@
     <ProjectGuid>{a5ace47a-0149-4fe4-8f9e-31d93eddfafc}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
-    <ProjectName>DebugFontTest</ProjectName>
+    <ProjectName>_x_DebugFontTest</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

@@ -25,8 +25,6 @@ void Sound::Load()
 {
 	Sound& ins = Get();
 	ins.LoadSE(L"Sound.wav");
-	ins.LoadBGM(L"Bgm01.wav");
-	ins.LoadBGM(L"Bgm02.wav");
 }
 
 void Sound::LoadSE(const std::wstring& filename)

@@ -46,16 +46,7 @@
     <FxCompile Include="VertexShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <MeshContentTask Include="Assets\a.fbx">
-      <Filter>Assets</Filter>
-    </MeshContentTask>
-    <MeshContentTask Include="Assets\EnemyVirus.fbx">
-      <Filter>Assets</Filter>
-    </MeshContentTask>
-    <MeshContentTask Include="Assets\EnemyJellyfish.fbx">
-      <Filter>Assets</Filter>
-    </MeshContentTask>
-    <MeshContentTask Include="Assets\EnemyBee.fbx">
+    <MeshContentTask Include="Assets\Crystal.fbx">
       <Filter>Assets</Filter>
     </MeshContentTask>
   </ItemGroup>

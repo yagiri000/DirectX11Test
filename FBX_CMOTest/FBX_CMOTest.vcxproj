@@ -23,6 +23,7 @@
     <ProjectGuid>{04cd3868-9a47-4602-8b41-1cf770929a77}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <ProjectName>FBX_CMOTest</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -199,10 +200,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <MeshContentTask Include="Assets\a.fbx" />
-    <MeshContentTask Include="Assets\EnemyBee.fbx" />
-    <MeshContentTask Include="Assets\EnemyJellyfish.fbx" />
-    <MeshContentTask Include="Assets\EnemyVirus.fbx" />
+    <MeshContentTask Include="Assets\Crystal.fbx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

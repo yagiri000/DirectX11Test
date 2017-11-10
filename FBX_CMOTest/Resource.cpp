@@ -37,9 +37,7 @@ void Resource::Load(ID3D11Device* device)
 	};
 #endif
 
-	load(L"EnemyBee.cmo");
-	load(L"EnemyJellyfish.cmo");
-	load(L"EnemyVirus.cmo");
+	load(L"Crystal.cmo");
 }
 
 void Resource::Draw(ID3D11DeviceContext * deviceContext, const std::wstring & key, FXMMATRIX world)

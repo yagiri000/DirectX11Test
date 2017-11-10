@@ -72,18 +72,9 @@ void Game::Update(DX::StepTimer const& timer)
 	Font::DrawQueue(log, Vector2(20.0f, 20.0f));
 
 	if (Input::GetKeyDown(Keyboard::Z)) {
-		Sound::PlayBGM(L"Bgm01.wav");
+		Sound::PlayOneShot(L"Sound.wav");
 		log += L"play, \n";
 	}
-	if (Input::GetKeyDown(Keyboard::X)) {
-		Sound::PauseBGM();
-		log += L"pause,  \n";
-	}
-	if (Input::GetKeyDown(Keyboard::C)) {
-		Sound::ResumeBGM();
-		log += L"resume,  \n";
-	}
-
 	
 }
 

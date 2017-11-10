@@ -115,7 +115,7 @@ void Game::Render()
     // Render a triangle
 	float elapsed = m_timer.GetFrameCount() / 60.0f;
 
-	static Vector3 pos(0.0f, 0.0f, 5.0f);
+	static Vector3 pos(0.0f, 0.0f, 15.0f);
 	const float Speed = 0.016f;
 
 	if (GetKeyState('W') & 0x80) {
@@ -171,7 +171,7 @@ void Game::Render()
 	Camera::SetProjectionInfo(XM_PI / 4.0f, 0.1f, 1000.0f);
 	Camera::SetTransform(Transform(Vector3(pos), Vector3::One, Quaternion::CreateFromYawPitchRoll(0.0f, 0.0f, 0.0f)));
 
-	Resource::Draw(m_context.Get(), L"EnemyBee.cmo", mWorld);
+	Resource::Draw(m_context.Get(), L"Crystal.cmo", mWorld);
 
     Present();
 }
