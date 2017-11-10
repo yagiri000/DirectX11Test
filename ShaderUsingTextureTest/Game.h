@@ -20,7 +20,14 @@ struct SimpleVertex
 };
 
 //Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
-struct SIMPLESHADER_CONSTANT_BUFFER
+struct SIMPLESHADER_VERTEX_CONSTANT_BUFFER
+{
+	XMMATRIX mW;
+	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
+	XMVECTOR UV;
+};
+
+struct SIMPLESHADER_PIXEL_CONSTANT_BUFFER
 {
 	XMMATRIX mW;
 	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
@@ -81,7 +88,8 @@ private:
 	ComPtr<ID3D11PixelShader>		m_pixelShader;
 	ComPtr<ID3D11InputLayout>		m_vertexLayout;
 	ComPtr<ID3D11Buffer>			m_vertexBuffer;
-	ComPtr<ID3D11Buffer>			m_constantBuffer;
+	ComPtr<ID3D11Buffer>			m_vertexConstantBuffer;
+	ComPtr<ID3D11Buffer>			m_pixelConstantBuffer;
 
 	ComPtr<ID3D11ShaderResourceView> pShaderResView;
 	ComPtr<ID3D11SamplerState> pSampler;

@@ -106,8 +106,8 @@ void Game::Render()
 	// Render a triangle
 	float elapsed = m_timer.GetFrameCount() / 60.0f;
 
-	static Vector3 pos(0.2f, 0.0f, -0.2f);
-	const float Speed = 0.03f;
+	static Vector3 pos = Vector3::Zero;
+	static constexpr float Speed = 0.03f;
 
 	if (GetKeyState('W') & 0x80) {
 		pos += Speed * Vector3::Forward;
@@ -132,49 +132,68 @@ void Game::Render()
 	m_context->RSSetState(m_rasterizerState.Get());
 
 
-	for (int i = 0; i < 5; i++) {
+	// 行列計算
+	Matrix mWorld;
+	Matrix mView;
+	Matrix mProj;
 
-		// 行列計算
-		Matrix mWorld;
-		Matrix mView;
-		Matrix mProj;
+	// ビュートランスフォーム（視点座標変換）
 
-		// ビュートランスフォーム（視点座標変換）
+	Vector3 eye(0.0f, 1.0f, 3.0f); //カメラ（視点）位置
+	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
+	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
+	mView = Matrix::CreateLookAt(eye, lookat, up);
 
-		Vector3 eye(0.0f, 1.0f, 3.0f); //カメラ（視点）位置
-		Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
-		Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
-		mView = Matrix::CreateLookAt(eye, lookat, up);
+	Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
+	//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
+	//ワールドトランスフォーム（絶対座標変換）
+	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix()
+		* Matrix::CreateTranslation(pos);
 
-		Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
-		//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
-		//ワールドトランスフォーム（絶対座標変換）
-		mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix()
-			* Matrix::CreateTranslation(pos + Vector3(0.3f * i, 0.3f * i, -0.3f * i));
+	// プロジェクショントランスフォーム（射影変換）
+	int width, height;
+	Game::GetDefaultSize(width, height);
+	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
-		// プロジェクショントランスフォーム（射影変換）
-		int width, height;
-		Game::GetDefaultSize(width, height);
-		mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
+	// 使用シェーダー登録
+	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
 
-		// 使用シェーダー登録
-		m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-		m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+	// サンプラー
+	UINT smp_slot = 0;
+	ID3D11SamplerState* smp[1] = { pSampler.Get() };
+	m_context->PSSetSamplers(smp_slot, 1, smp);
 
-		// サンプラー
-		UINT smp_slot = 0;
-		ID3D11SamplerState* smp[1] = { pSampler.Get() };
-		m_context->PSSetSamplers(smp_slot, 1, smp);
+	// シェーダーリソースビュー（テクスチャ）
+	UINT srv_slot = 0;
+	ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
+	m_context->PSSetShaderResources(srv_slot, 1, srv);
 
-		// シェーダーリソースビュー（テクスチャ）
-		UINT srv_slot = 0;
-		ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
-		m_context->PSSetShaderResources(srv_slot, 1, srv);
-
-		// コンスタントバッファーに各種データを渡す
+	// コンスタントバッファーに各種データを渡す
+	{
 		D3D11_MAPPED_SUBRESOURCE pData;
-		SIMPLESHADER_CONSTANT_BUFFER cb;
-		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+		SIMPLESHADER_VERTEX_CONSTANT_BUFFER cb;
+		if (SUCCEEDED(m_context->Map(m_vertexConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+			//ワールド、カメラ、射影行列を渡す
+			XMMATRIX m = mWorld*mView*mProj;
+			m = XMMatrixTranspose(m);
+
+			cb.mW = mWorld.Transpose();
+			cb.mWVP = m;
+			cb.UV = XMVectorSet(elapsed, 0.0f, 0.0f, 0.0f);
+
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+			m_context->Unmap(m_vertexConstantBuffer.Get(), 0);
+		}
+	}
+	m_context->VSSetConstantBuffers(0, 1, m_vertexConstantBuffer.GetAddressOf());//バーテックスバッファーで使う
+
+
+	// コンスタントバッファーに各種データを渡す
+	{
+		D3D11_MAPPED_SUBRESOURCE pData;
+		SIMPLESHADER_PIXEL_CONSTANT_BUFFER cb;
+		if (SUCCEEDED(m_context->Map(m_pixelConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
 			//ワールド、カメラ、射影行列を渡す
 			XMMATRIX m = mWorld*mView*mProj;
 			m = XMMatrixTranspose(m);
@@ -183,15 +202,14 @@ void Game::Render()
 			cb.mWVP = m;
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-			m_context->Unmap(m_constantBuffer.Get(), 0);
+			m_context->Unmap(m_pixelConstantBuffer.Get(), 0);
 		}
-
-		//このコンスタントバッファーを、どのシェーダーで使うかを指定
-		m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-		m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
-
-		m_context.Get()->Draw(4, 0);
 	}
+
+	//このコンスタントバッファーを、どのシェーダーで使うかを指定
+	m_context->PSSetConstantBuffers(0, 1, m_pixelConstantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+
+	m_context.Get()->Draw(4, 0);
 
 	Present();
 }
@@ -570,19 +588,32 @@ void Game::CreateResources()
 	// Set primitive topology
 	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	// コンスタントバッファー作成　シェーダーに変換行列を渡す用
-
-	//コンスタントバッファー作成　ここでは変換行列渡し用
-	D3D11_BUFFER_DESC cb;
-	cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cb.ByteWidth = sizeof(SIMPLESHADER_CONSTANT_BUFFER);
-	cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cb.MiscFlags = 0;
-	cb.StructureByteStride = 0;
-	cb.Usage = D3D11_USAGE_DYNAMIC;
-
+	//コンスタントバッファー作成　バーテックスシェーダー用
 	{
-		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
+		D3D11_BUFFER_DESC cb;
+		cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cb.ByteWidth = sizeof(SIMPLESHADER_VERTEX_CONSTANT_BUFFER);
+		cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cb.MiscFlags = 0;
+		cb.StructureByteStride = 0;
+		cb.Usage = D3D11_USAGE_DYNAMIC;
+
+		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_vertexConstantBuffer.GetAddressOf());
+		if (FAILED(hr)) {
+			return DX::ThrowIfFailed(hr);
+		}
+	}
+	//コンスタントバッファー作成　ピクセルシェーダー用
+	{
+		D3D11_BUFFER_DESC cb;
+		cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cb.ByteWidth = sizeof(SIMPLESHADER_PIXEL_CONSTANT_BUFFER);
+		cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cb.MiscFlags = 0;
+		cb.StructureByteStride = 0;
+		cb.Usage = D3D11_USAGE_DYNAMIC;
+
+		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_pixelConstantBuffer.GetAddressOf());
 		if (FAILED(hr)) {
 			return DX::ThrowIfFailed(hr);
 		}
@@ -598,7 +629,8 @@ void Game::OnDeviceLost()
 	pShaderResView.Reset();
 	pSampler.Reset();
 
-	m_constantBuffer.Reset();
+	m_vertexConstantBuffer.Reset();
+	m_pixelConstantBuffer.Reset();
 	m_vertexShader.Reset();
 	m_pixelShader.Reset();
 	m_vertexLayout.Reset();
