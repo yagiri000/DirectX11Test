@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.16
+VisualStudioVersion = 15.0.27004.2006
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PNGDrawTest", "Direct3D Win32 Game1\Direct3D Win32 Game1.vcxproj", "{530227AA-FE09-43B1-AE88-457E6F38F841}"
 EndProject
@@ -38,6 +38,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SoundTest", "SoundTest\SoundTest.vcxproj", "{2BE45D89-A749-4BE5-BBE8-7B644ADF0704}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FBX_CMOTest", "FBX_CMOTest\FBX_CMOTest.vcxproj", "{04CD3868-9A47-4602-8B41-1CF770929A77}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PostEffectTest2", "PostEffectTest2\PostEffectTest2.vcxproj", "{D273C5E7-6FBF-47F8-B5A9-052F5F26E564}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -191,6 +193,14 @@ Global
 		{04CD3868-9A47-4602-8B41-1CF770929A77}.Release|x64.Build.0 = Release|x64
 		{04CD3868-9A47-4602-8B41-1CF770929A77}.Release|x86.ActiveCfg = Release|Win32
 		{04CD3868-9A47-4602-8B41-1CF770929A77}.Release|x86.Build.0 = Release|Win32
+		{D273C5E7-6FBF-47F8-B5A9-052F5F26E564}.Debug|x64.ActiveCfg = Debug|x64
+		{D273C5E7-6FBF-47F8-B5A9-052F5F26E564}.Debug|x64.Build.0 = Debug|x64
+		{D273C5E7-6FBF-47F8-B5A9-052F5F26E564}.Debug|x86.ActiveCfg = Debug|Win32
+		{D273C5E7-6FBF-47F8-B5A9-052F5F26E564}.Debug|x86.Build.0 = Debug|Win32
+		{D273C5E7-6FBF-47F8-B5A9-052F5F26E564}.Release|x64.ActiveCfg = Release|x64
+		{D273C5E7-6FBF-47F8-B5A9-052F5F26E564}.Release|x64.Build.0 = Release|x64
+		{D273C5E7-6FBF-47F8-B5A9-052F5F26E564}.Release|x86.ActiveCfg = Release|Win32
+		{D273C5E7-6FBF-47F8-B5A9-052F5F26E564}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
