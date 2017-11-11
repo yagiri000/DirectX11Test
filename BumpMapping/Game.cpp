@@ -7,7 +7,6 @@
 #include <d3dcompiler.h>
 #include <fstream>
 #include "Utility.h"
-#include "Particle.h"
 #include "Random.h"
 #include "Font.h"
 #include "Input.h"
@@ -47,10 +46,9 @@ private:
 
 Game::Game() :
 	m_window(nullptr),
-	m_outputWidth(800),
-	m_outputHeight(600),
-	m_featureLevel(D3D_FEATURE_LEVEL_9_1),
-	m_renderQueue(new DrawInfo[InitialQueueSize])
+	m_outputWidth(1280),
+	m_outputHeight(720),
+	m_featureLevel(D3D_FEATURE_LEVEL_9_1)
 {
 }
 
@@ -64,67 +62,6 @@ void Game::Initialize(HWND window, int width, int height)
 	CreateDevice();
 
 	CreateResources();
-
-	// TODO : 修正
-	// 現在グローバル領域の関数にラムダを突っ込み，Drawする部分でそれを呼んでいる
-	Utility::DrawPlane = [&](const Transform& trans, const Vector4& color) {
-
-		// 行列計算
-		Matrix mWorld;
-		Matrix mView;
-		Matrix mProj;
-
-		// ビュートランスフォーム（視点座標変換）
-		float elapsed = m_timer.GetFrameCount() / 60.0f;
-
-		//Vector3 eye(0.0f, 1.0f, -2.0f);
-		//eye = Vector3::Transform(eye, Matrix::CreateFromQuaternion(Quaternion::CreateFromYawPitchRoll(elapsed, 0.0f, 0.0f)));
-
-		static float yRot = 0.0f;
-		static float xRot = 0.0f;
-
-		const float CameraAngleSpeed = 0.0001f;
-		if (GetKeyState(VK_UP) & 0x80) {
-			xRot += CameraAngleSpeed;
-		}
-		if (GetKeyState(VK_DOWN) & 0x80) {
-			xRot -= CameraAngleSpeed;
-		}
-		if (GetKeyState(VK_RIGHT) & 0x80) {
-			yRot += CameraAngleSpeed;
-		}
-		if (GetKeyState(VK_LEFT) & 0x80) {
-			yRot -= CameraAngleSpeed;
-		}
-
-		xRot = Utility::Clamp(xRot, -XM_PI * 0.499f, XM_PI * 0.499f);
-		Vector3 eye(0.0f, 0.0f, -3.0f);
-		eye = Vector3::Transform(eye, Matrix::CreateFromYawPitchRoll(0.0f, xRot, 0.0f));
-		eye = Vector3::Transform(eye, Matrix::CreateFromYawPitchRoll(yRot, 0.0f, 0.0f));
-
-		Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
-		Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
-		mView = Matrix::CreateLookAt(eye, lookat, up);
-
-		Utility::SetCameraTransform(Transform(Vector3(eye), Vector3::One, Quaternion::CreateFromRotationMatrix(Matrix::CreateWorld(Vector3::Zero, lookat - eye, Vector3::Up))));
-
-		//ワールドトランスフォーム（絶対座標変換）
-		mWorld = trans.GetMatrix();
-
-		// プロジェクショントランスフォーム（射影変換）
-		int width, height;
-		Game::GetDefaultSize(width, height);
-		mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
-
-		DrawInfo& di = m_renderQueue[m_renderQueueCount];
-		di.world = mWorld;
-		di.view = mView;
-		di.proj = mProj;
-		di.vertexCount = 4;
-		di.color = color;
-
-		m_renderQueueCount++;
-	};
 
 	// TODO: Change the timer settings if you want something other than the default variable timestep mode.
 	// e.g. for 60 FPS fixed timestep update logic, call:
@@ -158,120 +95,8 @@ void Game::Update(DX::StepTimer const& timer)
 	Input::Update();
 
 	if (Input::GetKey(Keyboard::Z)) {
-		for (size_t i = 0; i < 2; i++) {
-
-			m_particles.emplace_back(
-				std::make_unique<Particle>(
-					Random::OnSphere() * 0.1f,
-					Random::OnSphere() *  Random::Range(0.0f, 0.15f) + Vector3::Up * Random::Range(1.0f, 2.0f),
-					Vector3::Down * 0.5f,
-					MinMaxCurve4(
-						MinMaxCurve(0.4f, 0.0f),
-						MinMaxCurve(0.2f, 0.0f),
-						MinMaxCurve(0.2f, 0.0f),
-						MinMaxCurve(0.2f, 1.0f)
-					),
-					MinMaxCurveRotation(),
-					MinMaxCurve4(
-						MinMaxCurve(1.0f, 0.0f),
-						MinMaxCurve(0.0f, 0.5f),
-						MinMaxCurve(0.0f, 0.1f),
-						MinMaxCurve(1.0f, 0.0f)
-					),
-					Random::Range(0.5f, 1.0f)
-					)
-			);
-		}
-	}
-	if (Input::GetKey(Keyboard::X)) {
-		for (size_t i = 0; i < 5; i++) {
-
-			m_particles.emplace_back(
-				std::make_unique<Particle>(
-					Random::OnSphere() * 0.0f,
-					Random::OnSphere() * Random::Range(3.0f, 4.0f),
-					Vector3::Down * 0.0f,
-					MinMaxCurve4(
-						MinMaxCurve(0.03f, 0.0f),
-						MinMaxCurve(0.4f, 0.0f),
-						MinMaxCurve(0.2f, 0.0f),
-						MinMaxCurve(0.2f, 1.0f)
-					),
-					MinMaxCurveRotation(),
-					MinMaxCurve4(
-						MinMaxCurve(0.0f, 0.0f),
-						MinMaxCurve(Random::Range(0.0f, 0.5f), 0.5f),
-						MinMaxCurve(1.0f, 0.1f),
-						MinMaxCurve(1.0f, 0.0f)
-					),
-					Random::Range(0.3f, 0.5f)
-					)
-			);
-		}
-	}
-	if (Input::GetKey(Keyboard::C)) {
-		m_particles.emplace_back(
-			std::make_unique<Particle>(
-				Random::OnSphere() * Random::Range(0.3f, 0.6f),
-				Random::OnSphere() * 0.0f,
-				Vector3::Zero,
-				MinMaxCurve4(
-					MinMaxCurve(0.5f, 3.0f),
-					MinMaxCurve(0.2f, 0.0f),
-					MinMaxCurve(0.4f, 0.0f),
-					MinMaxCurve(0.4f, 1.0f)
-				),
-				MinMaxCurveRotation(
-					Random::Rotation()
-				),
-				MinMaxCurve4(
-					MinMaxCurve(0.0f, 0.0f),
-					MinMaxCurve(0.0f, 0.5f),
-					MinMaxCurve(1.0f, 0.1f),
-					MinMaxCurve(1.0f, 0.0f)
-				),
-				0.12f
-				)
-		);
-	}
-	if (Input::GetKey(Keyboard::V)) {
-		for (size_t i = 0; i < 5; i++) {
-
-			m_particles.emplace_back(
-				std::make_unique<Particle>(
-					Random::OnSphere() * 0.0f,
-					Random::OnSphere() * Random::Range(3.0f, 4.0f),
-					Vector3::Down * 0.0f,
-					MinMaxCurve4(
-						MinMaxCurve(0.03f, 0.0f),
-						MinMaxCurve(0.4f, 0.0f),
-						MinMaxCurve(0.2f, 0.0f),
-						MinMaxCurve(0.2f, 1.0f)
-					),
-					MinMaxCurveRotation(),
-					MinMaxCurve4(
-						MinMaxCurve(0.0f, 0.0f),
-						MinMaxCurve(Random::Range(0.0f, 0.5f), 0.5f),
-						MinMaxCurve(1.0f, 0.1f),
-						MinMaxCurve(1.0f, 0.0f)
-					),
-					Random::Range(0.3f, 0.5f)
-					)
-			);
-		}
 	}
 
-	for (auto&& i : m_particles) {
-		i->Update(1.0f / 60.0f);
-	}
-
-
-	auto it = std::remove_if(m_particles.begin(), m_particles.end(), []
-	(const std::unique_ptr<Particle>& a) {
-		return a->IsDead();
-	});
-
-	m_particles.erase(it, m_particles.end());
 
 	// TODO: Add your game logic here.
 	elapsedTime;
@@ -291,34 +116,7 @@ void Game::Render()
 	// Render a triangle
 
 	Font::DrawQueue(L"FPS:" + std::to_wstring(m_timer.GetFramesPerSecond()), Vector2(30.0f, 30.0f));
-	Font::DrawQueue(L"NUM:" + std::to_wstring(m_particles.size()), Vector2(30.0f, 62.0f));
 
-	m_renderQueueCount = 0;
-
-	for (auto&& i : m_particles) {
-		i->Draw();
-	}
-
-	static std::vector<DrawInfo const*> sorted;
-	if (sorted.size() < m_particles.size()) {
-		sorted.resize(m_particles.size());
-	}
-
-	for (size_t i = 0; i < m_renderQueueCount; i++) {
-		sorted[i] = &m_renderQueue[i];
-	}
-
-	std::sort(sorted.begin(), sorted.begin() + m_renderQueueCount, [](DrawInfo const* a, DrawInfo const* b) {
-#if 0
-		Matrix am = a->world * a->view;
-		Matrix bm = b->world * b->view;
-		return am._43 < bm._43;
-#else
-		float a43 = a->world._41 * a->view._13 + a->world._42 * a->view._23 + a->world._43 * a->view._33 + a->world._44 * a->view._43;
-		float b43 = b->world._41 * b->view._13 + b->world._42 * b->view._23 + b->world._43 * b->view._33 + b->world._44 * b->view._43;
-		return a43 < b43;
-#endif
-	});
 
 	// Set the input layout
 	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
@@ -331,7 +129,7 @@ void Game::Render()
 	// Set primitive topology
 	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	m_context->OMSetBlendState(m_blendState.Get(), NULL, 0xffffffff);
+	// m_context->OMSetBlendState(m_blendState.Get(), NULL, 0xffffffff);
 
 	// 使用シェーダー登録
 	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
@@ -347,43 +145,97 @@ void Game::Render()
 	ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
 	m_context->PSSetShaderResources(srv_slot, 1, srv);
 
-	for (size_t count = 0; count < m_renderQueueCount; count++) {
-		const DrawInfo* i = sorted[count];
 
-		// VertexShader用コンスタントバッファーに各種データを渡す
-		{
-			D3D11_MAPPED_SUBRESOURCE pData;
-			SIMPLESHADER_CONSTANT_BUFFER cb;
-			if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
-				//ワールド、カメラ、射影行列を渡す
-				XMMATRIX m = i->world*i->view*i->proj;
-				m = XMMatrixTranspose(m);
-				cb.mWVP = m;
-				cb.mW = i->world.Transpose();
+	static Vector3 pos(Vector3::Zero);
+	const float Speed = 0.016f;
 
-				memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-				m_context->Unmap(m_constantBuffer.Get(), 0);
-			}
-		}
-
-		// PixelShader用コンスタントバッファーに各種データを渡す
-		{
-			D3D11_MAPPED_SUBRESOURCE pData;
-			PIXELSHADER_CONSTANT_BUFFER cb;
-			if (SUCCEEDED(m_context->Map(m_constantBufferPixel.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
-				cb.color = i->color;
-				memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-				m_context->Unmap(m_constantBufferPixel.Get(), 0);
-			}
-		}
-
-		//このコンスタントバッファーを、どのシェーダーで使うかを指定
-		m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-		m_context->PSSetConstantBuffers(0, 1, m_constantBufferPixel.GetAddressOf());//ピクセルシェーダーでの使う
-
-		m_context.Get()->Draw(i->vertexCount, 0);
-		//m_context.Get()->DrawInstanced(i->vertexCount, m_renderQueueCount, 0, 0);
+	if (GetKeyState('W') & 0x80) {
+		pos += Speed * Vector3::Forward;
 	}
+	if (GetKeyState('A') & 0x80) {
+		pos += Speed * Vector3::Left;
+	}
+	if (GetKeyState('S') & 0x80) {
+		pos += Speed * Vector3::Backward;
+	}
+	if (GetKeyState('D') & 0x80) {
+		pos += Speed * Vector3::Right;
+	}
+	if (GetKeyState('E') & 0x80) {
+		pos += Speed * Vector3::Up;
+	}
+	if (GetKeyState('Q') & 0x80) {
+		pos += Speed * Vector3::Down;
+	}
+
+
+	// 行列計算
+	Matrix world;
+	Matrix view;
+	Matrix proj;
+
+	//ワールドトランスフォーム（絶対座標変換）
+	world = Matrix::CreateScale(1.0f, 1.0f, 1.0f)
+		* Matrix::CreateFromYawPitchRoll(pos.x, pos.y, pos.z);
+//		* Matrix::CreateTranslation(pos);
+
+	// ビュートランスフォーム（視点座標変換）
+	Vector3 eye(0.0f, 0.0f, 2.0f); //カメラ（視点）位置
+	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
+	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
+	view = Matrix::CreateLookAt(eye, lookat, up);
+
+
+	// プロジェクショントランスフォーム（射影変換）
+	int width, height;
+	Game::GetDefaultSize(width, height);
+	proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
+
+	static Vector3 LightDir(0.0f, 1.0f, 1.0f);
+
+	// VertexShader用コンスタントバッファーに各種データを渡す
+	{
+		D3D11_MAPPED_SUBRESOURCE pData;
+		SIMPLESHADER_CONSTANT_BUFFER cb;
+		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+			//ワールド、カメラ、射影行列を渡す
+			XMMATRIX m = world*view*proj;
+			m = XMMatrixTranspose(m);
+			cb.mWVP = m;
+			cb.mW = world.Transpose();
+			cb.mDiffuse = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+			cb.mEye = eye;
+			cb.mLightDir = LightDir;
+
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+			m_context->Unmap(m_constantBuffer.Get(), 0);
+		}
+	}
+
+	// PixelShader用コンスタントバッファーに各種データを渡す
+	{
+		D3D11_MAPPED_SUBRESOURCE pData;
+		PIXELSHADER_CONSTANT_BUFFER cb;
+		if (SUCCEEDED(m_context->Map(m_constantBufferPixel.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+			XMMATRIX m = world*view*proj;
+			m = XMMatrixTranspose(m);
+			cb.mWVP = m;
+			cb.mW = world.Transpose();
+			cb.mDiffuse = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+			cb.mEye = eye;
+			cb.mLightDir = LightDir;
+
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+			m_context->Unmap(m_constantBufferPixel.Get(), 0);
+		}
+	}
+
+	//このコンスタントバッファーを、どのシェーダーで使うかを指定
+	m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+	m_context->PSSetConstantBuffers(0, 1, m_constantBufferPixel.GetAddressOf());//ピクセルシェーダーでの使う
+
+	m_context.Get()->Draw(4, 0);
+	//m_context.Get()->DrawInstanced(i->vertexCount, m_renderQueueCount, 0, 0);
 
 
 	Font::Batch();
@@ -468,8 +320,8 @@ void Game::OnWindowSizeChanged(int width, int height)
 void Game::GetDefaultSize(int& width, int& height) const
 {
 	// TODO: Change to desired default window size (note minimum size is 320x200).
-	width = 800;
-	height = 600;
+	width = 1280;
+	height = 720;
 }
 
 HRESULT Game::CompileShaderFromFile(WCHAR * szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob ** ppBlobOut)
@@ -699,7 +551,7 @@ void Game::CreateResources()
 
 
 	// テクスチャ作成
-	hr = DirectX::CreateWICTextureFromFile(m_device.Get(), L"image.png", &pTexture, &pShaderResView);
+	hr = DirectX::CreateWICTextureFromFile(m_device.Get(), L"normalmap.png", &pTexture, &pShaderResView);
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
@@ -721,7 +573,7 @@ void Game::CreateResources()
 
 
 	// Create vertex buffer
-	SimpleVertex vertices[] =
+	static constexpr SimpleVertex vertices[] =
 	{
 		{ XMFLOAT3(-0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 1.0f) }, //頂点1	
 		{ XMFLOAT3(-0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 0.0f) }, //頂点2
@@ -740,6 +592,8 @@ void Game::CreateResources()
 	hr = m_device.Get()->CreateBuffer(&bd, &InitData, m_vertexBuffer.GetAddressOf());
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
+
+
 
 
 	//コンスタントバッファー作成　ここでは変換行列渡し用

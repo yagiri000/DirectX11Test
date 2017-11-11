@@ -2,7 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Assets">
-      <UniqueIdentifier>c75f66f9-0fa7-4980-a089-d6cd3d11b665</UniqueIdentifier>
+      <UniqueIdentifier>b4b1efea-0c65-4dfc-a2cb-73f0600b30bf</UniqueIdentifier>
       <Extensions>ico;cur;bmp;dds;dlg;fbx;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
   </ItemGroup>
@@ -10,15 +10,10 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="StepTimer.h" />
+    <ClInclude Include="Random.h" />
     <ClInclude Include="Transform.h" />
-    <ClInclude Include="Particle.h" />
-    <ClInclude Include="MinMaxCurve.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Easing.h" />
-    <ClInclude Include="Material.h" />
-    <ClInclude Include="Mesh.h" />
-    <ClInclude Include="Random.h" />
-    <ClInclude Include="DrawInfo.h" />
     <ClInclude Include="Font.h" />
     <ClInclude Include="Input.h" />
   </ItemGroup>
@@ -26,15 +21,10 @@
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Random.cpp" />
     <ClCompile Include="Transform.cpp" />
-    <ClCompile Include="Particle.cpp" />
-    <ClCompile Include="MinMaxCurve.cpp" />
     <ClCompile Include="Utility.cpp" />
     <ClCompile Include="Easing.cpp" />
-    <ClCompile Include="Material.cpp" />
-    <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="Random.cpp" />
-    <ClCompile Include="DrawInfo.cpp" />
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="Input.cpp" />
   </ItemGroup>
@@ -45,6 +35,9 @@
     <Image Include="directx.ico">
       <Filter>Assets</Filter>
     </Image>
+    <Image Include="image.png">
+      <Filter>Assets</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="settings.manifest">
@@ -52,7 +45,7 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="PixelShader.hlsl" />
     <FxCompile Include="VertexShader.hlsl" />
+    <FxCompile Include="PixelShader.hlsl" />
   </ItemGroup>
 </Project>
