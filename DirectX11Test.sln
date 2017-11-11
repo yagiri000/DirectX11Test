@@ -19,7 +19,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3DDrawTest2", "3DDrawTest2\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CSOTest", "CSOTest\CSOTest.vcxproj", "{44937830-0CE8-415C-821A-EA5D9EB8B5BE}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShaderUsingTextureTest", "ShaderUsingTextureTest\ShaderUsingTextureTest.vcxproj", "{1B9CBD92-BE0F-48FB-B557-71C1C509932A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UVScroll", "ShaderUsingTextureTest\ShaderUsingTextureTest.vcxproj", "{1B9CBD92-BE0F-48FB-B557-71C1C509932A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ModelTest", "ModelTest\ModelTest.vcxproj", "{BA873B38-CE31-4A99-8B3A-0E7B43BF9B0F}"
 EndProject
@@ -40,6 +40,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PostEffectTest2", "PostEffectTest2\PostEffectTest2.vcxproj", "{D273C5E7-6FBF-47F8-B5A9-052F5F26E564}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BumpMapping", "BumpMapping\BumpMapping.vcxproj", "{32F88A9E-0BCF-4890-9B23-B6C0385FEAB1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UVScroll2", "UVScroll2\UVScroll2.vcxproj", "{B23E08AB-B8CE-4062-A2A4-14B54CC31050}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -201,6 +203,14 @@ Global
 		{32F88A9E-0BCF-4890-9B23-B6C0385FEAB1}.Release|x64.Build.0 = Release|x64
 		{32F88A9E-0BCF-4890-9B23-B6C0385FEAB1}.Release|x86.ActiveCfg = Release|Win32
 		{32F88A9E-0BCF-4890-9B23-B6C0385FEAB1}.Release|x86.Build.0 = Release|Win32
+		{B23E08AB-B8CE-4062-A2A4-14B54CC31050}.Debug|x64.ActiveCfg = Debug|x64
+		{B23E08AB-B8CE-4062-A2A4-14B54CC31050}.Debug|x64.Build.0 = Debug|x64
+		{B23E08AB-B8CE-4062-A2A4-14B54CC31050}.Debug|x86.ActiveCfg = Debug|Win32
+		{B23E08AB-B8CE-4062-A2A4-14B54CC31050}.Debug|x86.Build.0 = Debug|Win32
+		{B23E08AB-B8CE-4062-A2A4-14B54CC31050}.Release|x64.ActiveCfg = Release|x64
+		{B23E08AB-B8CE-4062-A2A4-14B54CC31050}.Release|x64.Build.0 = Release|x64
+		{B23E08AB-B8CE-4062-A2A4-14B54CC31050}.Release|x86.ActiveCfg = Release|Win32
+		{B23E08AB-B8CE-4062-A2A4-14B54CC31050}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
