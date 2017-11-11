@@ -17,6 +17,9 @@ using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
 
+constexpr UINT Game::Columns;
+constexpr UINT Game::Rows;
+
 
 struct BinFile
 {
@@ -44,8 +47,8 @@ private:
 
 Game::Game() :
 	m_window(nullptr),
-	m_outputWidth(800),
-	m_outputHeight(600),
+	m_outputWidth(1280),
+	m_outputHeight(720),
 	m_featureLevel(D3D_FEATURE_LEVEL_9_1)
 {
 }
@@ -162,11 +165,13 @@ void Game::Render()
 	// サンプラー
 	UINT smp_slot = 0;
 	ID3D11SamplerState* smp[1] = { pSampler.Get() };
+	m_context->VSSetSamplers(smp_slot, 1, smp);
 	m_context->PSSetSamplers(smp_slot, 1, smp);
 
 	// シェーダーリソースビュー（テクスチャ）
 	UINT srv_slot = 0;
 	ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
+	m_context->VSSetShaderResources(srv_slot, 1, srv);
 	m_context->PSSetShaderResources(srv_slot, 1, srv);
 
 	// コンスタントバッファーに各種データを渡す
@@ -180,7 +185,7 @@ void Game::Render()
 
 			cb.mW = mWorld.Transpose();
 			cb.mWVP = m;
-			cb.UV = XMVectorSet(elapsed, 0.0f, 0.0f, 0.0f);
+			cb.UV = XMVectorSet(0.0f, -elapsed, 0.0f, 0.0f);
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
 			m_context->Unmap(m_vertexConstantBuffer.Get(), 0);
@@ -209,7 +214,7 @@ void Game::Render()
 	//このコンスタントバッファーを、どのシェーダーで使うかを指定
 	m_context->PSSetConstantBuffers(0, 1, m_pixelConstantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
 
-	m_context.Get()->Draw(4, 0);
+	m_context.Get()->DrawIndexed(m_indexCount, 0, 0);
 
 	Present();
 }
@@ -306,8 +311,8 @@ void Game::OnWindowSizeChanged(int width, int height)
 void Game::GetDefaultSize(int& width, int& height) const
 {
 	// TODO: Change to desired default window size (note minimum size is 320x200).
-	width = 800;
-	height = 600;
+	width = 1280;
+	height = 720;
 }
 
 // These are the resources that depend on the device.
@@ -522,6 +527,7 @@ void Game::CreateResources()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	UINT elem_num = ARRAYSIZE(layout);
 
@@ -558,21 +564,72 @@ void Game::CreateResources()
 	}
 
 
-
 	// Create vertex buffer
-	constexpr SimpleVertex vertices[] =
-	{
-		{XMFLOAT3(-0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 1.0f)}, //頂点1	
-		{XMFLOAT3(-0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 0.0f) }, //頂点2
-		{XMFLOAT3(0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f),  XMFLOAT2(1.0f, 1.0f) }, //頂点3
-		{XMFLOAT3(0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(1.0f, 0.0f) }, //頂点4	
+	//constexpr SimpleVertex vertices[] =
+	//{
+	//	{XMFLOAT3(-0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 1.0f)}, //頂点1	
+	//	{XMFLOAT3(-0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 0.0f) }, //頂点2
+	//	{XMFLOAT3(0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f),  XMFLOAT2(1.0f, 1.0f) }, //頂点3
+	//	{XMFLOAT3(0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(1.0f, 0.0f) }, //頂点4	
+	//};
+
+	static const auto Lerp = [](float a, float b, float rate) {
+		return a * (1.0f - rate) + b * rate;
 	};
+
+	static constexpr float R0 = 0.5f;
+	static constexpr float R1 = 1.0f;
+	static constexpr UINT ColumnsPlus = Columns + 1;
+	static constexpr UINT num = (ColumnsPlus * Rows);
+
+	SimpleVertex vertices[num];
+
+	for (UINT i = 0; i < ColumnsPlus; i++) {
+		for (UINT j = 0; j < Rows; j++) {
+			UINT num = i * Rows + j;
+			float x = (float)i / Columns;
+			float y = (float)j / (Rows - 1);
+			float angle = XM_2PI * x;
+			vertices[num].Pos = XMFLOAT3(cos(angle) * Lerp(R0, R1, y), sin(angle) * Lerp(R0, R1, y), 0.0f);
+			vertices[num].Normal = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			vertices[num].UV = XMFLOAT2(x * 4.0f, y);
+			float alpha;
+			if (y < 0.5f) {
+				alpha = 2.0f * y;
+			}
+			else {
+				alpha = 1.0f - 2.0 * (y - 0.5f);
+			}
+			vertices[num].Color = XMFLOAT4(0.5f, 0.5f, 1.0f, alpha*alpha);
+		}
+	}
+
+
+	// メッシュのインデックスを読み込みます。インデックスの 3 つ 1 組の値のそれぞれは、次のものを表します
+	// 画面上に描画される三角形を表します。
+	// たとえば、0,2,1 とは、頂点バッファーからのインデックスを意味します:
+	// 0、2、1 を持つ頂点が、このメッシュの
+	// 最初の三角形を構成することを意味します。
+	static unsigned short cubeIndices[Columns*(Rows - 1) * 6];
+	int count = 0;
+	for (UINT i = 0; i < Columns; i++) {
+		for (UINT j = 0; j < Rows - 1; j++) {
+			int n = j + i * Rows;
+			int nPlusOne = j + 1 + i * Rows;
+			cubeIndices[count++] = n % num;
+			cubeIndices[count++] = (n + Rows) % num;
+			cubeIndices[count++] = (nPlusOne) % num;
+			cubeIndices[count++] = (nPlusOne) % num;
+			cubeIndices[count++] = (n + Rows) % num;
+			cubeIndices[count++] = (nPlusOne + Rows) % num;
+		}
+	}
 
 
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(SimpleVertex) * 4;
+	bd.ByteWidth = sizeof(SimpleVertex) * num;
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 	D3D11_SUBRESOURCE_DATA InitData;
@@ -587,8 +644,30 @@ void Game::CreateResources()
 	UINT offset = 0;
 	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
+
+	m_indexCount = ARRAYSIZE(cubeIndices);
+
+	D3D11_SUBRESOURCE_DATA indexBufferData = { 0 };
+	indexBufferData.pSysMem = cubeIndices;
+	indexBufferData.SysMemPitch = 0;
+	indexBufferData.SysMemSlicePitch = 0;
+	CD3D11_BUFFER_DESC indexBufferDesc(sizeof(cubeIndices), D3D11_BIND_INDEX_BUFFER);
+	DX::ThrowIfFailed(
+		m_device->CreateBuffer(
+			&indexBufferDesc,
+			&indexBufferData,
+			&m_indexBuffer
+		)
+	);
+
+	m_context->IASetIndexBuffer(
+		m_indexBuffer.Get(),
+		DXGI_FORMAT_R16_UINT, // 各インデックスは、1 つの 16 ビット符号なし整数 (short) です。
+		0
+	);
+
 	// Set primitive topology
-	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	m_context.Get()->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//コンスタントバッファー作成　バーテックスシェーダー用
 	{

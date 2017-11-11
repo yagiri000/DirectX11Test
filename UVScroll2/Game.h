@@ -17,6 +17,7 @@ struct SimpleVertex
 	DirectX::XMFLOAT3 Pos;
 	DirectX::XMFLOAT3 Normal;
 	DirectX::XMFLOAT2 UV;
+	DirectX::XMFLOAT4 Color;
 };
 
 //Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
@@ -88,8 +89,10 @@ private:
 	ComPtr<ID3D11PixelShader>		m_pixelShader;
 	ComPtr<ID3D11InputLayout>		m_vertexLayout;
 	ComPtr<ID3D11Buffer>			m_vertexBuffer;
+	ComPtr<ID3D11Buffer>			m_indexBuffer;
 	ComPtr<ID3D11Buffer>			m_vertexConstantBuffer;
 	ComPtr<ID3D11Buffer>			m_pixelConstantBuffer;
+	UINT							m_indexCount;
 
 	ComPtr<ID3D11ShaderResourceView> pShaderResView;
 	ComPtr<ID3D11SamplerState> pSampler;
@@ -97,4 +100,7 @@ private:
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
+
+	static constexpr UINT Columns = 36;
+	static constexpr UINT Rows = 12;
 };
