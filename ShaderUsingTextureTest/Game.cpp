@@ -246,8 +246,8 @@ void Game::Clear()
 		rdc.FillMode = D3D11_FILL_SOLID;
 		rdc.FrontCounterClockwise = TRUE;
 
-		m_device->CreateRasterizerState(&rdc, m_rasterizerStateBack.GetAddressOf());
-		m_context->RSSetState(m_rasterizerStateBack.Get());
+		m_device->CreateRasterizerState(&rdc, m_rasterizerStateWireFrame.GetAddressOf());
+		m_context->RSSetState(m_rasterizerStateWireFrame.Get());
 	}
 
 }
@@ -638,7 +638,7 @@ void Game::OnDeviceLost()
 
 	m_blendState.Reset();
 	m_rasterizerState.Reset();
-	m_rasterizerStateBack.Reset();
+	m_rasterizerStateWireFrame.Reset();
 	m_depthStencilView.Reset();
 	m_renderTargetView.Reset();
 	m_swapChain.Reset();

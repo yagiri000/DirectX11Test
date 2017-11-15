@@ -10,13 +10,16 @@
 #include <fstream>
 #include "Utility.h"
 #include "Random.h"
-#include "DrawInfo.h"
+#include "Input.h"
 
 extern void ExitGame();
 
 using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
+
+constexpr UINT Game::Columns;
+constexpr UINT Game::Rows;
 
 
 struct BinFile
@@ -45,8 +48,8 @@ private:
 
 Game::Game() :
 	m_window(nullptr),
-	m_outputWidth(800),
-	m_outputHeight(600),
+	m_outputWidth(1280),
+	m_outputHeight(720),
 	m_featureLevel(D3D_FEATURE_LEVEL_9_1)
 {
 }
@@ -65,10 +68,8 @@ void Game::Initialize(HWND window, int width, int height)
 
 	// TODO: Change the timer settings if you want something other than the default variable timestep mode.
 	// e.g. for 60 FPS fixed timestep update logic, call:
-	/*
 	m_timer.SetFixedTimeStep(true);
 	m_timer.SetTargetElapsedSeconds(1.0 / 60);
-	*/
 }
 
 // Executes the basic game loop.
@@ -84,13 +85,64 @@ void Game::Tick()
 // Updates the world.
 void Game::Update(DX::StepTimer const& timer)
 {
-	float elapsedTime = float(timer.GetElapsedSeconds());
+	Input::Update();
+	float deltaTime = float(timer.GetElapsedSeconds());
 
-	static bool pre = false;
+	
+	static const auto Lerp = [](float a, float b, float rate) {
+		rate = pow(rate, 0.75f);
+		return a * (1.0f - rate) + b * rate;
+	};
+
+	static float elapsedTime = 0.0f;
+	elapsedTime += deltaTime;
+	if (Input::GetKeyDown(Keyboard::Z)) {
+		elapsedTime = 0.0f;
+	}
+	if (Input::GetKeyDown(Keyboard::X)) {
+		m_context->RSSetState(m_rasterizerState.Get());
+	}
+	if (Input::GetKeyDown(Keyboard::C)) {
+		m_context->RSSetState(m_rasterizerStateWireFrame.Get());
+	}
+
+	static float R0 = 0.5f;
+	static float R1 = 1.0f;
+	float rate = elapsedTime / 1.0f;
+	rate = Utility::Clamp(rate, 0.0f, 1.0f);
+	R0 = Lerp(0.0f, 1.0f, rate);
+	R1 = Lerp(0.5f, 1.0f, rate);
+	static constexpr UINT ColumnsPlus = Columns + 1;
+	static constexpr UINT num = (ColumnsPlus * Rows);
+
+	static SimpleVertex vertices[num];
+
+	for (UINT i = 0; i < ColumnsPlus; i++) {
+		for (UINT j = 0; j < Rows; j++) {
+			UINT num = i * Rows + j;
+			float x = (float)i / Columns;
+			float y = (float)j / (Rows - 1);
+			float angle = XM_2PI * x;
+			vertices[num].Pos = XMFLOAT3(cos(angle) * Lerp(R0, R1, y), sin(angle) * Lerp(R0, R1, y), 0.0f);
+			vertices[num].Normal = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			vertices[num].UV = XMFLOAT2(x * 6.0f, y);
+			float alpha;
+			if (y < 0.5f) {
+				alpha = 2.0f * y;
+			}
+			else {
+				alpha = 1.0f - 2.0 * (y - 0.5f);
+			}
+			vertices[num].Color = XMFLOAT4(1.0f, 0.1f, 0.0f, pow(alpha, 1.0f));
+		}
+	}
 
 
-	// TODO: Add your game logic here.
-	elapsedTime;
+	// データを突っ込む
+	D3D11_MAPPED_SUBRESOURCE msr;
+	m_context->Map(m_vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+	memcpy(msr.pData, vertices, sizeof(SimpleVertex) * num); // 3頂点分コピー
+	m_context->Unmap(m_vertexBuffer.Get(), 0);
 }
 
 // Draws the scene.
@@ -107,8 +159,8 @@ void Game::Render()
 	// Render a triangle
 	float elapsed = m_timer.GetFrameCount() / 60.0f;
 
-	static Vector3 pos(0.2f, 0.0f, -0.2f);
-	const float Speed = 0.03f;
+	static Vector3 pos = Vector3::Zero;
+	static constexpr float Speed = 0.03f;
 
 	if (GetKeyState('W') & 0x80) {
 		pos += Speed * Vector3::Forward;
@@ -130,90 +182,86 @@ void Game::Render()
 	}
 
 
-	m_context->RSSetState(m_rasterizerState.Get());
 
-	static std::vector<DrawInfo> vec;
+	// 行列計算
+	Matrix mWorld;
+	Matrix mView;
+	Matrix mProj;
 
-	for (int i = 0; i < 5; i++) {
+	// ビュートランスフォーム（視点座標変換）
 
-		DrawInfo di;
+	Vector3 eye(0.0f, 1.0f, 3.0f); //カメラ（視点）位置
+	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
+	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
+	mView = Matrix::CreateLookAt(eye, lookat, up);
+	Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
+	//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
+	//ワールドトランスフォーム（絶対座標変換）
+	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix()
+		* Matrix::CreateTranslation(pos);
 
-		// 行列計算
-		Matrix mWorld;
-		Matrix mView;
-		Matrix mProj;
+	// プロジェクショントランスフォーム（射影変換）
+	int width, height;
+	Game::GetDefaultSize(width, height);
+	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
-		// ビュートランスフォーム（視点座標変換）
+	// 使用シェーダー登録
+	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
 
-		Vector3 eye(0.0f, 1.0f, 3.0f); //カメラ（視点）位置
-		Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
-		Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
-		mView = Matrix::CreateLookAt(eye, lookat, up);
+	// サンプラー
+	UINT smp_slot = 0;
+	ID3D11SamplerState* smp[1] = { pSampler.Get() };
+	m_context->VSSetSamplers(smp_slot, 1, smp);
+	m_context->PSSetSamplers(smp_slot, 1, smp);
 
-		Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
-		//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
-		//ワールドトランスフォーム（絶対座標変換）
-		mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix()
-			* Matrix::CreateTranslation(pos * (float)i);
+	// シェーダーリソースビュー（テクスチャ）
+	UINT srv_slot = 0;
+	ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
+	m_context->VSSetShaderResources(srv_slot, 1, srv);
+	m_context->PSSetShaderResources(srv_slot, 1, srv);
 
-		// プロジェクショントランスフォーム（射影変換）
-		int width, height;
-		Game::GetDefaultSize(width, height);
-		mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
-
-		di.world = mWorld;
-		di.view = mView;
-		di.proj = mProj;
-		di.vertexCount = 4;
-
-		vec.emplace_back(di);
-	}
-
-	std::sort(vec.begin(), vec.end(), [](const DrawInfo& a, const DrawInfo& b) {
-		Matrix am = a.world * a.view * a.proj;
-		Matrix bm = b.world * b.view * b.proj;
-		return am._43 > bm._43;
-	});
-
-	for (auto &i : vec) {
-		// 使用シェーダー登録
-		m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-		m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
-
-		// サンプラー
-		UINT smp_slot = 0;
-		ID3D11SamplerState* smp[1] = { pSampler.Get() };
-		m_context->PSSetSamplers(smp_slot, 1, smp);
-
-		// シェーダーリソースビュー（テクスチャ）
-		UINT srv_slot = 0;
-		ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
-		m_context->PSSetShaderResources(srv_slot, 1, srv);
-
-		// コンスタントバッファーに各種データを渡す
+	// コンスタントバッファーに各種データを渡す
+	{
 		D3D11_MAPPED_SUBRESOURCE pData;
-		SIMPLESHADER_CONSTANT_BUFFER cb;
-		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+		SIMPLESHADER_VERTEX_CONSTANT_BUFFER cb;
+		if (SUCCEEDED(m_context->Map(m_vertexConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
 			//ワールド、カメラ、射影行列を渡す
-			XMMATRIX m = i.world*i.view*i.proj;
+			XMMATRIX m = mWorld*mView*mProj;
 			m = XMMatrixTranspose(m);
 
-			cb.mW = i.world.Transpose();
+			cb.mW = mWorld.Transpose();
+			cb.mWVP = m;
+			cb.UV = XMVectorSet(elapsed, 0.0f, 0.0f, 0.0f);
+
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+			m_context->Unmap(m_vertexConstantBuffer.Get(), 0);
+		}
+	}
+	m_context->VSSetConstantBuffers(0, 1, m_vertexConstantBuffer.GetAddressOf());//バーテックスバッファーで使う
+
+
+	// コンスタントバッファーに各種データを渡す
+	{
+		D3D11_MAPPED_SUBRESOURCE pData;
+		SIMPLESHADER_PIXEL_CONSTANT_BUFFER cb;
+		if (SUCCEEDED(m_context->Map(m_pixelConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+			//ワールド、カメラ、射影行列を渡す
+			XMMATRIX m = mWorld*mView*mProj;
+			m = XMMatrixTranspose(m);
+
+			cb.mW = mWorld.Transpose();
 			cb.mWVP = m;
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-			m_context->Unmap(m_constantBuffer.Get(), 0);
+			m_context->Unmap(m_pixelConstantBuffer.Get(), 0);
 		}
-
-		//このコンスタントバッファーを、どのシェーダーで使うかを指定
-		m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-		m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
-
-		m_context.Get()->Draw(i.vertexCount, 0);
 	}
 
+	//このコンスタントバッファーを、どのシェーダーで使うかを指定
+	m_context->PSSetConstantBuffers(0, 1, m_pixelConstantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
 
-	vec.clear();
+	m_context.Get()->DrawIndexed(m_indexCount, 0, 0);
 
 	Present();
 }
@@ -223,7 +271,8 @@ void Game::Clear()
 {
 	// Clear the views.
 	// m_context->ClearRenderTargetView(m_renderTargetView.Get(), Color(0.1f, 0.1f, 0.1f));
-	m_context->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
+	float a[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	m_context->ClearRenderTargetView(m_renderTargetView.Get(), a);
 	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
@@ -232,27 +281,6 @@ void Game::Clear()
 	CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(m_outputWidth), static_cast<float>(m_outputHeight));
 	m_context->RSSetViewports(1, &viewport);
 
-	//ラスタライズ設定
-	{
-		D3D11_RASTERIZER_DESC rdc;
-		ZeroMemory(&rdc, sizeof(rdc));
-		rdc.CullMode = D3D11_CULL_NONE;
-		rdc.FillMode = D3D11_FILL_SOLID;
-		rdc.FrontCounterClockwise = TRUE;
-
-		m_device->CreateRasterizerState(&rdc, m_rasterizerState.GetAddressOf());
-		m_context->RSSetState(m_rasterizerState.Get());
-	}
-	{
-		D3D11_RASTERIZER_DESC rdc;
-		ZeroMemory(&rdc, sizeof(rdc));
-		rdc.CullMode = D3D11_CULL_BACK;
-		rdc.FillMode = D3D11_FILL_SOLID;
-		rdc.FrontCounterClockwise = TRUE;
-
-		m_device->CreateRasterizerState(&rdc, m_rasterizerStateWireFrame.GetAddressOf());
-		m_context->RSSetState(m_rasterizerStateWireFrame.Get());
-	}
 
 }
 
@@ -310,8 +338,8 @@ void Game::OnWindowSizeChanged(int width, int height)
 void Game::GetDefaultSize(int& width, int& height) const
 {
 	// TODO: Change to desired default window size (note minimum size is 320x200).
-	width = 800;
-	height = 600;
+	width = 1280;
+	height = 720;
 }
 
 // These are the resources that depend on the device.
@@ -378,6 +406,7 @@ void Game::CreateDevice()
 
 	// TODO: Initialize device dependent objects here (independent of window size).
 
+	Input::Initialize(m_window);
 
 
 }
@@ -504,8 +533,8 @@ void Game::CreateResources()
 
 
 	//シェーダー読み込み
-	BinFile vscode(L"..\\data\\VertexShader.cso");
-	BinFile pscode(L"..\\data\\PixelShader.cso");
+	BinFile vscode(L"..\\Debug\\VertexShader.cso");
+	BinFile pscode(L"..\\Debug\\PixelShader.cso");
 
 	// 頂点シェーダ作成
 	//  メモ：シェーダーをデバッグ情報ありでコンパイルすると
@@ -526,6 +555,7 @@ void Game::CreateResources()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	UINT elem_num = ARRAYSIZE(layout);
 
@@ -562,21 +592,66 @@ void Game::CreateResources()
 	}
 
 
-
-	// Create vertex buffer
-	SimpleVertex vertices[] =
-	{
-		{XMFLOAT3(-0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 1.0f)}, //頂点1	
-		{XMFLOAT3(-0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(0.0f, 0.0f) }, //頂点2
-		{XMFLOAT3(0.5,-0.5,0), XMFLOAT3(0.0f,0.0f,1.0f),  XMFLOAT2(1.0f, 1.0f) }, //頂点3
-		{XMFLOAT3(0.5,0.5,0),  XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT2(1.0f, 0.0f) }, //頂点4	
+	static const auto Lerp = [](float a, float b, float rate) {
+		return a * (1.0f - rate) + b * rate;
 	};
+
+	static constexpr float R0 = 0.5f;
+	static constexpr float R1 = 1.0f;
+	static constexpr UINT ColumnsPlus = Columns + 1;
+	static constexpr UINT num = (ColumnsPlus * Rows);
+
+	SimpleVertex vertices[num];
+
+	for (UINT i = 0; i < ColumnsPlus; i++) {
+		for (UINT j = 0; j < Rows; j++) {
+			UINT num = i * Rows + j;
+			float x = (float)i / Columns;
+			float y = (float)j / (Rows - 1);
+			float angle = XM_2PI * x;
+			vertices[num].Pos = XMFLOAT3(cos(angle) * Lerp(R0, R1, y), sin(angle) * Lerp(R0, R1, y), 0.0f);
+			vertices[num].Normal = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			vertices[num].UV = XMFLOAT2(x * 4.0f, y);
+			float alpha;
+			if (y < 0.5f) {
+				alpha = 2.0f * y;
+			}
+			else {
+				alpha = 1.0f - 2.0 * (y - 0.5f);
+			}
+			vertices[num].Color = XMFLOAT4(0.5f, 0.5f, 1.0f, alpha*alpha);
+		}
+	}
+
+
+	// メッシュのインデックスを読み込みます。インデックスの 3 つ 1 組の値のそれぞれは、次のものを表します
+	// 画面上に描画される三角形を表します。
+	// たとえば、0,2,1 とは、頂点バッファーからのインデックスを意味します:
+	// 0、2、1 を持つ頂点が、このメッシュの
+	// 最初の三角形を構成することを意味します。
+	static unsigned short cubeIndices[Columns*(Rows - 1) * 6];
+	int count = 0;
+	for (UINT i = 0; i < Columns; i++) {
+		for (UINT j = 0; j < Rows - 1; j++) {
+			int n = j + i * Rows;
+			int nPlusOne = j + 1 + i * Rows;
+			cubeIndices[count++] = n % num;
+			cubeIndices[count++] = (n + Rows) % num;
+			cubeIndices[count++] = (nPlusOne) % num;
+			cubeIndices[count++] = (nPlusOne) % num;
+			cubeIndices[count++] = (n + Rows) % num;
+			cubeIndices[count++] = (nPlusOne + Rows) % num;
+		}
+	}
+
+
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(SimpleVertex) * 4;
+	bd.ByteWidth = sizeof(SimpleVertex) * num;
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.CPUAccessFlags = 0;
+	bd.Usage = D3D11_USAGE_DYNAMIC;
+	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
 	D3D11_SUBRESOURCE_DATA InitData;
 	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = vertices;
@@ -589,25 +664,82 @@ void Game::CreateResources()
 	UINT offset = 0;
 	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
+
+	m_indexCount = ARRAYSIZE(cubeIndices);
+
+	D3D11_SUBRESOURCE_DATA indexBufferData = { 0 };
+	indexBufferData.pSysMem = cubeIndices;
+	indexBufferData.SysMemPitch = 0;
+	indexBufferData.SysMemSlicePitch = 0;
+	CD3D11_BUFFER_DESC indexBufferDesc(sizeof(cubeIndices), D3D11_BIND_INDEX_BUFFER);
+	DX::ThrowIfFailed(
+		m_device->CreateBuffer(
+			&indexBufferDesc,
+			&indexBufferData,
+			&m_indexBuffer
+		)
+	);
+
+	m_context->IASetIndexBuffer(
+		m_indexBuffer.Get(),
+		DXGI_FORMAT_R16_UINT, // 各インデックスは、1 つの 16 ビット符号なし整数 (short) です。
+		0
+	);
+
 	// Set primitive topology
-	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	m_context.Get()->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// コンスタントバッファー作成　シェーダーに変換行列を渡す用
-
-	//コンスタントバッファー作成　ここでは変換行列渡し用
-	D3D11_BUFFER_DESC cb;
-	cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cb.ByteWidth = sizeof(SIMPLESHADER_CONSTANT_BUFFER);
-	cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cb.MiscFlags = 0;
-	cb.StructureByteStride = 0;
-	cb.Usage = D3D11_USAGE_DYNAMIC;
-
+	//コンスタントバッファー作成　バーテックスシェーダー用
 	{
-		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
+		D3D11_BUFFER_DESC cb;
+		cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cb.ByteWidth = sizeof(SIMPLESHADER_VERTEX_CONSTANT_BUFFER);
+		cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cb.MiscFlags = 0;
+		cb.StructureByteStride = 0;
+		cb.Usage = D3D11_USAGE_DYNAMIC;
+
+		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_vertexConstantBuffer.GetAddressOf());
 		if (FAILED(hr)) {
 			return DX::ThrowIfFailed(hr);
 		}
+	}
+	//コンスタントバッファー作成　ピクセルシェーダー用
+	{
+		D3D11_BUFFER_DESC cb;
+		cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cb.ByteWidth = sizeof(SIMPLESHADER_PIXEL_CONSTANT_BUFFER);
+		cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cb.MiscFlags = 0;
+		cb.StructureByteStride = 0;
+		cb.Usage = D3D11_USAGE_DYNAMIC;
+
+		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_pixelConstantBuffer.GetAddressOf());
+		if (FAILED(hr)) {
+			return DX::ThrowIfFailed(hr);
+		}
+	}
+
+
+	//ラスタライズ設定
+	{
+		D3D11_RASTERIZER_DESC rdc;
+		ZeroMemory(&rdc, sizeof(rdc));
+		rdc.CullMode = D3D11_CULL_NONE;
+		rdc.FillMode = D3D11_FILL_SOLID;
+		rdc.FrontCounterClockwise = TRUE;
+
+		m_device->CreateRasterizerState(&rdc, m_rasterizerState.GetAddressOf());
+		m_context->RSSetState(m_rasterizerState.Get());
+	}
+	{
+		D3D11_RASTERIZER_DESC rdc;
+		ZeroMemory(&rdc, sizeof(rdc));
+		rdc.CullMode = D3D11_CULL_NONE;
+		rdc.FillMode = D3D11_FILL_WIREFRAME;
+		rdc.FrontCounterClockwise = TRUE;
+
+		m_device->CreateRasterizerState(&rdc, m_rasterizerStateWireFrame.GetAddressOf());
 	}
 }
 
@@ -620,7 +752,8 @@ void Game::OnDeviceLost()
 	pShaderResView.Reset();
 	pSampler.Reset();
 
-	m_constantBuffer.Reset();
+	m_vertexConstantBuffer.Reset();
+	m_pixelConstantBuffer.Reset();
 	m_vertexShader.Reset();
 	m_pixelShader.Reset();
 	m_vertexLayout.Reset();

@@ -74,7 +74,7 @@ private:
     ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
     ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
 	ComPtr<ID3D11RasterizerState>	m_rasterizerState;
-	ComPtr<ID3D11RasterizerState>	m_rasterizerStateBack;
+	ComPtr<ID3D11RasterizerState>	m_rasterizerStateWireFrame;
 	ComPtr<ID3D11BlendState>		m_blendState;
 
 	ComPtr<ID3D11VertexShader>		m_vertexShader;

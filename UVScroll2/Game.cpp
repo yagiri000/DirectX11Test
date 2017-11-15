@@ -146,7 +146,6 @@ void Game::Render()
 	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
 	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
 	mView = Matrix::CreateLookAt(eye, lookat, up);
-
 	Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
 	//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
 	//ワールドトランスフォーム（絶対座標変換）
@@ -251,8 +250,8 @@ void Game::Clear()
 		rdc.FillMode = D3D11_FILL_SOLID;
 		rdc.FrontCounterClockwise = TRUE;
 
-		m_device->CreateRasterizerState(&rdc, m_rasterizerStateBack.GetAddressOf());
-		m_context->RSSetState(m_rasterizerStateBack.Get());
+		m_device->CreateRasterizerState(&rdc, m_rasterizerStateWireFrame.GetAddressOf());
+		m_context->RSSetState(m_rasterizerStateWireFrame.Get());
 	}
 
 }
@@ -719,7 +718,7 @@ void Game::OnDeviceLost()
 
 	m_blendState.Reset();
 	m_rasterizerState.Reset();
-	m_rasterizerStateBack.Reset();
+	m_rasterizerStateWireFrame.Reset();
 	m_depthStencilView.Reset();
 	m_renderTargetView.Reset();
 	m_swapChain.Reset();

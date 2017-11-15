@@ -102,5 +102,5 @@ private:
     DX::StepTimer                                   m_timer;
 
 	static constexpr UINT Columns = 36;
-	static constexpr UINT Rows = 12;
+	static constexpr UINT Rows = 4;
 };
