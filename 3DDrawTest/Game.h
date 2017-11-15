@@ -7,12 +7,20 @@
 #include "StepTimer.h"
 
 
+using namespace DirectX;
+
 //--------------------------------------------------------------------------------------
 // Structures
 //--------------------------------------------------------------------------------------
 struct SimpleVertex
 {
-	DirectX::XMFLOAT3 Pos;
+	XMFLOAT3 Pos;
+};
+
+//Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
+struct SIMPLESHADER_CONSTANT_BUFFER
+{
+	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
 };
 
 // 三角形ポリゴンを描画する例
@@ -67,10 +75,13 @@ private:
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
 
-	ID3D11VertexShader*     m_vertexShader = NULL;
-	ID3D11PixelShader*      m_pixelShader = NULL;
-	ID3D11InputLayout*      m_vertexLayout = NULL;
-	ID3D11Buffer*           m_vertexBuffer = NULL;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>     m_vertexShader = NULL;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader>      m_pixelShader = NULL;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout>      m_vertexLayout = NULL;
+	Microsoft::WRL::ComPtr<ID3D11Buffer>           m_vertexBuffer = NULL;
+	Microsoft::WRL::ComPtr<ID3D11Buffer>           m_indexBuffer = NULL;
+	Microsoft::WRL::ComPtr<ID3D11Buffer>           m_constantBuffer = NULL;
+	UINT					m_indexCount;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;

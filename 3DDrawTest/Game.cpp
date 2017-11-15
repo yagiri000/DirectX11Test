@@ -9,6 +9,7 @@
 extern void ExitGame();
 
 using namespace DirectX;
+using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
 
@@ -71,10 +72,73 @@ void Game::Render()
     Clear();
 
     // TODO: Add your rendering code here.
-    // Render a triangle
-	m_context.Get()->VSSetShader(m_vertexShader, NULL, 0);
-	m_context.Get()->PSSetShader(m_pixelShader, NULL, 0);
-	m_context.Get()->Draw(3, 0);
+	static Vector3 pos(Vector3::Zero);
+	const float Speed = 0.02f;
+
+	if (GetKeyState('W') & 0x80) {
+		pos += Speed * Vector3::Forward;
+	}
+	if (GetKeyState('A') & 0x80) {
+		pos += Speed * Vector3::Left;
+	}
+	if (GetKeyState('S') & 0x80) {
+		pos += Speed * Vector3::Backward;
+	}
+	if (GetKeyState('D') & 0x80) {
+		pos += Speed * Vector3::Right;
+	}
+	if (GetKeyState('E') & 0x80) {
+		pos += Speed * Vector3::Up;
+	}
+	if (GetKeyState('Q') & 0x80) {
+		pos += Speed * Vector3::Down;
+	}
+
+
+	// 行列計算
+	Matrix mWorld;
+	Matrix mView;
+	Matrix mProj;
+
+	//ワールドトランスフォーム（絶対座標変換）
+	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f)
+		* Matrix()
+		* Matrix::CreateTranslation(pos);
+
+	// ビュートランスフォーム（視点座標変換）
+	Vector3 eye(0.0f, 1.0f, 4.0f); //カメラ（視点）位置
+	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
+	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
+	mView = Matrix::CreateLookAt(eye, lookat, up);
+
+
+	// プロジェクショントランスフォーム（射影変換）
+	int width, height;
+	Game::GetDefaultSize(width, height);
+	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
+
+	// 使用シェーダー登録
+	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+
+	// コンスタントバッファーに各種データを渡す
+	D3D11_MAPPED_SUBRESOURCE pData;
+	SIMPLESHADER_CONSTANT_BUFFER cb;
+	if (SUCCEEDED(m_context.Get()->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+		//ワールド、カメラ、射影行列を渡す
+		XMMATRIX m = mWorld*mView*mProj;
+		m = XMMatrixTranspose(m);
+		cb.mWVP = m;
+
+		memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+		m_context.Get()->Unmap(m_constantBuffer.Get(), 0);
+	}
+
+	//コンスタントバッファーをセット
+	m_context.Get()->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+	m_context.Get()->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+
+	m_context.Get()->DrawIndexed(m_indexCount, 0, 0);
 
     Present();
 }
@@ -362,7 +426,7 @@ void Game::CreateResources()
 
 	// Create the vertex shader
 	
-	hr = m_device.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &m_vertexShader);
+	hr = m_device.Get()->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, m_vertexShader.GetAddressOf());
 	if (FAILED(hr)) {
 		pVSBlob->Release();
 		return DX::ThrowIfFailed(hr);
@@ -377,13 +441,13 @@ void Game::CreateResources()
 
 	// Create the input layout
 	hr = m_device.Get()->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
-		pVSBlob->GetBufferSize(), &m_vertexLayout);
+		pVSBlob->GetBufferSize(), m_vertexLayout.GetAddressOf());
 	pVSBlob->Release();
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set the input layout
-	m_context.Get()->IASetInputLayout(m_vertexLayout);
+	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = NULL;
@@ -395,7 +459,7 @@ void Game::CreateResources()
 	}
 
 	// Create the pixel shader
-	hr = m_device.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &m_pixelShader);
+	hr = m_device.Get()->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, m_pixelShader.GetAddressOf());
 	pPSBlob->Release();
 	if (FAILED(hr))		
 		return DX::ThrowIfFailed(hr);
@@ -404,30 +468,93 @@ void Game::CreateResources()
 	// Create vertex buffer
 	SimpleVertex vertices[] =
 	{
-		XMFLOAT3(0.0f, 0.5f, 0.5f),
-		XMFLOAT3(0.5f, -0.5f, 0.5f),
-		XMFLOAT3(-0.5f, -0.5f, 0.5f),
+		{ XMFLOAT3(-0.5f, -0.5f, -0.5f) },
+		{ XMFLOAT3(-0.5f, -0.5f,  0.5f) },
+		{ XMFLOAT3(-0.5f,  0.5f, -0.5f) },
+		{ XMFLOAT3(-0.5f,  0.5f,  0.5f) },
+		{ XMFLOAT3(0.5f, -0.5f, -0.5f) },
+		{ XMFLOAT3(0.5f, -0.5f,  0.5f) },
+		{ XMFLOAT3(0.5f,  0.5f, -0.5f) },
+		{ XMFLOAT3(0.5f,  0.5f,  0.5f) },
 	};
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(SimpleVertex) * 3;
+	bd.ByteWidth = sizeof(SimpleVertex) * 8;
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 	D3D11_SUBRESOURCE_DATA InitData;
 	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = vertices;
-	hr = m_device.Get()->CreateBuffer(&bd, &InitData, &m_vertexBuffer);
+	hr = m_device.Get()->CreateBuffer(&bd, &InitData, m_vertexBuffer.GetAddressOf());
+	if (FAILED(hr))
+		return DX::ThrowIfFailed(hr);
+
+
+	// 頂点インデックスを定義
+	static const unsigned short cubeIndices[] =
+	{
+		0,2,1, // -x
+		1,2,3,
+
+		4,5,6, // +x
+		5,7,6,
+
+		0,1,5, // -y
+		0,5,4,
+
+		2,6,7, // +y
+		2,7,3,
+
+		0,4,6, // -z
+		0,6,2,
+
+		1,3,7, // +z
+		1,7,5,
+	};
+
+
+	// 頂点インデックスバッファ作成
+	m_indexCount = ARRAYSIZE(cubeIndices);
+
+	D3D11_SUBRESOURCE_DATA indexBufferData = { 0 };
+	indexBufferData.pSysMem = cubeIndices;
+	indexBufferData.SysMemPitch = 0;
+	indexBufferData.SysMemSlicePitch = 0;
+	CD3D11_BUFFER_DESC indexBufferDesc(sizeof(cubeIndices), D3D11_BIND_INDEX_BUFFER);
+
+	InitData.pSysMem = cubeIndices;
+	hr = m_device.Get()->CreateBuffer(&indexBufferDesc, &indexBufferData, m_indexBuffer.GetAddressOf());
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
 	// Set vertex buffer
 	UINT stride = sizeof(SimpleVertex);
 	UINT offset = 0;
-	m_context.Get()->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+
+	// Set index buffer
+	m_context.Get()->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
 	// Set primitive topology
 	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+	//コンスタントバッファー作成　ここでは変換行列渡し用
+	D3D11_BUFFER_DESC cb;
+	cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cb.ByteWidth = sizeof(SIMPLESHADER_CONSTANT_BUFFER);
+	cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cb.MiscFlags = 0;
+	cb.StructureByteStride = 0;
+	cb.Usage = D3D11_USAGE_DYNAMIC;
+
+	{
+		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
+		if (FAILED(hr)) {
+			return DX::ThrowIfFailed(hr);
+		}
+	}
 
 }
 
@@ -435,16 +562,18 @@ void Game::OnDeviceLost()
 {
     // TODO: Add Direct3D resource cleanup here.
 
+	m_indexBuffer.Reset();
+	m_vertexBuffer.Reset();
+	m_vertexLayout.Reset();
+	m_vertexShader.Reset();
+	m_constantBuffer.Reset();
+	m_pixelShader.Reset();
+
     m_depthStencilView.Reset();
     m_renderTargetView.Reset();
     m_swapChain.Reset();
     m_context.Reset();
     m_device.Reset();
-
-	if (m_vertexBuffer) m_vertexBuffer->Release();
-	if (m_vertexLayout) m_vertexLayout->Release();
-	if (m_vertexShader) m_vertexShader->Release();
-	if (m_pixelShader) m_pixelShader->Release();
 
     CreateDevice();
 

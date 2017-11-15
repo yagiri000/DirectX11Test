@@ -80,6 +80,7 @@ private:
 	ComPtr<ID3D11Buffer>			m_vertexBuffer;
 	ComPtr<ID3D11Buffer>			m_constantBuffer;
 
+
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
 };
