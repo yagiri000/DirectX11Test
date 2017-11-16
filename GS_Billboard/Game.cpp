@@ -125,20 +125,19 @@ void Game::Render()
 	float time = (float)m_timer.GetTotalSeconds();
 
 	{
-		constexpr int PlusNum = 10;
+		constexpr int PlusNum = 1000;
 		if (GetKeyState('D') & 0x80) {
 			m_num += PlusNum;
 		}
-		if (GetKeyState('A') & 0x80) {
+		if (GetKeyState('A') & 0x80 && m_num > PlusNum) {
 			m_num -= PlusNum;
 		}
-		m_num = Utility::Clamp(m_num, 1.0f, 9999.0f);
+
+		m_num = Utility::Clamp(m_num, 0, MAXNUM);
 	}
 
 
 	// Set primitive topology
-	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-
 	m_context->RSSetState(m_rasterizerState.Get());
 
 	UINT mask = 0xffffffff;
@@ -190,16 +189,29 @@ void Game::Render()
 		m_context->Unmap(m_constantBuffer.Get(), 0);
 	}
 
+	ID3D11ShaderResourceView* const     g_pNullSRV = NULL;       // Helper to Clear SRVs
+	ID3D11UnorderedAccessView* const    g_pNullUAV = NULL;       // Helper to Clear UAVs
+	ID3D11Buffer* const                 g_pNullBuffer = NULL;    // Helper to Clear Buffers
+	UINT                                g_iNullUINT = 0;         // Helper to Clear Buffers
+
 	m_context->VSSetShaderResources(0, 1, m_particlesSRV.GetAddressOf());
-	// m_context->IASetVertexBuffers(0, 1, nullptr, nullptr, nullptr);
+	m_context->IASetVertexBuffers(0, 1, &g_pNullBuffer, &g_iNullUINT, &g_iNullUINT);
+	m_context->IASetIndexBuffer(g_pNullBuffer, DXGI_FORMAT_UNKNOWN, 0);
+	m_context->IASetInputLayout(nullptr);
+	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
 	m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 	m_context->GSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 	m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 
-	m_context.Get()->Draw(m_num, 0);
+	m_context->Draw(m_num, 0);
 
-	//Font::Batch();
+	m_context->GSSetShader(nullptr, NULL, 0);
+
+	// Unset the particles buffer
+	m_context->VSSetShaderResources(0, 1, &g_pNullSRV);
+
+	Font::Batch();
 
 	Present();
 }

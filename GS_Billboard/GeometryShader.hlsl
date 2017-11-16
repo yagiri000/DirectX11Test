@@ -28,7 +28,7 @@ void main(point GS_INPUT In[1], inout TriangleStream<PS_INPUT> SpriteStream)
 	[unroll]
 	for (int i = 0; i < 4; i++) {
 		PS_INPUT Out = (PS_INPUT)0;
-		float4 Pos = In[0].Pos + 0.1 * float4(g_positions[i], 0, 0);
+		float4 Pos = In[0].Pos + 0.01 * float4(g_positions[i], 0, 0);
 		Out.Pos = mul(Pos, g_mWVP);
 		Out.Color = float4(1.0, 0.0, 0.0, 1.0);
 		Out.Tex = g_texcoords[i];
