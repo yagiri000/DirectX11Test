@@ -26,6 +26,11 @@ struct SIMPLESHADER_CONSTANT_BUFFER
 	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
 };
 
+struct INSTANCE_BUFFER
+{
+	XMVECTOR mPos;
+};
+
 // 平面が原点を常に見るようにするテスト
 class Game
 {
@@ -82,13 +87,14 @@ private:
 	ComPtr<ID3D11InputLayout>		m_vertexLayout;
 	ComPtr<ID3D11Buffer>			m_vertexBuffer;
 	ComPtr<ID3D11Buffer>			m_constantBuffer;
+	ComPtr<ID3D11Buffer>			m_instanceBuffer;
 
 	ComPtr<ID3D11ShaderResourceView> pShaderResView;
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
 
-	static const UINT MAXNUM = 100;
-	UINT m_num = MAXNUM;
+	static const UINT MAXNUM = 30000;
+	UINT m_num = MAXNUM / 2;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;

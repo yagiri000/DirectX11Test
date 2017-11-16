@@ -125,7 +125,7 @@ void Game::Render()
 	float time = (float)m_timer.GetTotalSeconds();
 
 	{
-		constexpr int PlusNum = 10;
+		const int PlusNum = MAXNUM / 120;
 		if (GetKeyState('D') & 0x80) {
 			m_num += PlusNum;
 		}
@@ -140,10 +140,24 @@ void Game::Render()
 	// Set the input layout
 	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
 
+	{
+		D3D11_MAPPED_SUBRESOURCE pData;
+		if (SUCCEEDED(m_context->Map(m_instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+
+			static std::vector<INSTANCE_BUFFER> inst(MAXNUM);
+			for (int i = 0; i < m_num; i++) {
+				inst[i].mPos = Vector3::Transform(Positions[i], Matrix::CreateRotationY(time));
+			}
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&inst[0]), sizeof(INSTANCE_BUFFER) * m_num);
+			m_context->Unmap(m_instanceBuffer.Get(), 0);
+		}
+	}
+
 	// Set vertex buffer
-	UINT stride = sizeof(SimpleVertex);
-	UINT offset = 0;
-	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+	UINT stride[2] = { sizeof(SimpleVertex), sizeof(INSTANCE_BUFFER) };
+	UINT offset[2] = { 0, 0 };
+	ID3D11Buffer* vertInstBuffers[2] = { m_vertexBuffer.Get(), m_instanceBuffer.Get() };
+	m_context.Get()->IASetVertexBuffers(0, 2, vertInstBuffers, stride, offset);
 
 	// Set primitive topology
 	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -153,91 +167,58 @@ void Game::Render()
 	UINT mask = 0xffffffff;
 	m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
 
-	static std::vector<DrawInfo> vec;
 
-	for (int i = 0; i < m_num; i++) {
+	// 行列計算
+	Matrix mView;
+	Matrix mProj;
 
-		constexpr float RotationSpeed = 2.0f;
-		Vector3 pos = Vector3::Transform(Positions[i], Matrix::CreateRotationY(time * RotationSpeed));
+	// ビュートランスフォーム（視点座標変換）
+	Vector3 eye(0.0f, 1.0f, 3.0f); //カメラ（視点）位置
+	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
+	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
+	mView = Matrix::CreateLookAt(eye, lookat, up);
 
-		DrawInfo di;
+	// プロジェクショントランスフォーム（射影変換）
+	int width, height;
+	Game::GetDefaultSize(width, height);
+	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
-		// 行列計算
-		Matrix mWorld;
-		Matrix mView;
-		Matrix mProj;
 
-		// ビュートランスフォーム（視点座標変換）
+	// 使用シェーダー登録
+	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
+	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
 
-		Vector3 eye(0.0f, 1.0f, 3.0f); //カメラ（視点）位置
-		Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
-		Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
-		mView = Matrix::CreateLookAt(eye, lookat, up);
+	// サンプラー
+	UINT smp_slot = 0;
+	ID3D11SamplerState* smp[1] = { pSampler.Get() };
+	m_context->PSSetSamplers(smp_slot, 1, smp);
 
-		Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
-		//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
-		//ワールドトランスフォーム（絶対座標変換）
-		mWorld = Matrix::CreateScale(0.1f) 
-			* Matrix()
-			* Matrix::CreateTranslation(pos);
+	// シェーダーリソースビュー（テクスチャ）
+	UINT srv_slot = 0;
+	ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
+	m_context->PSSetShaderResources(srv_slot, 1, srv);
 
-		// プロジェクショントランスフォーム（射影変換）
-		int width, height;
-		Game::GetDefaultSize(width, height);
-		mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
-
-		di.world = mWorld;
-		di.view = mView;
-		di.proj = mProj;
-		di.vertexCount = 4;
-
-		vec.emplace_back(di);
-	}
-
-	std::sort(vec.begin(), vec.end(), [](const DrawInfo& a, const DrawInfo& b) {
-		Matrix am = a.world * a.view;
-		Matrix bm = b.world * b.view;
-		return am._43 > bm._43;
-	});
-
-	for (auto &i : vec) {
-		// 使用シェーダー登録
-		m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-		m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
-
-		// サンプラー
-		UINT smp_slot = 0;
-		ID3D11SamplerState* smp[1] = { pSampler.Get() };
-		m_context->PSSetSamplers(smp_slot, 1, smp);
-
-		// シェーダーリソースビュー（テクスチャ）
-		UINT srv_slot = 0;
-		ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
-		m_context->PSSetShaderResources(srv_slot, 1, srv);
-
-		// コンスタントバッファーに各種データを渡す
+	// コンスタントバッファーに各種データを渡す
+	{
 		D3D11_MAPPED_SUBRESOURCE pData;
 		SIMPLESHADER_CONSTANT_BUFFER cb;
 		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
 			//ワールド、カメラ、射影行列を渡す
-			XMMATRIX m = i.world*i.view*i.proj;
+			XMMATRIX m = mView * mProj;
 			m = XMMatrixTranspose(m);
-			cb.mW = i.world.Transpose();
+			cb.mW = Matrix();
 			cb.mWVP = m;
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
 			m_context->Unmap(m_constantBuffer.Get(), 0);
 		}
-
-		//このコンスタントバッファーを、どのシェーダーで使うかを指定
-		m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
-		m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
-
-		m_context.Get()->Draw(i.vertexCount, 0);
 	}
 
+	//このコンスタントバッファーを、どのシェーダーで使うかを指定
+	m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+	m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
 
-	vec.clear();
+	m_context.Get()->DrawInstanced(4, m_num, 0, 0);
 
 	Font::Batch();
 
@@ -258,28 +239,8 @@ void Game::Clear()
 	CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(m_outputWidth), static_cast<float>(m_outputHeight));
 	m_context->RSSetViewports(1, &viewport);
 
-	//ラスタライズ設定
-	{
-		D3D11_RASTERIZER_DESC rdc;
-		ZeroMemory(&rdc, sizeof(rdc));
-		rdc.CullMode = D3D11_CULL_NONE;
-		rdc.FillMode = D3D11_FILL_SOLID;
-		rdc.FrontCounterClockwise = TRUE;
 
-		m_device->CreateRasterizerState(&rdc, m_rasterizerState.GetAddressOf());
-		m_context->RSSetState(m_rasterizerState.Get());
-	}
-	{
-		D3D11_RASTERIZER_DESC rdc;
-		ZeroMemory(&rdc, sizeof(rdc));
-		rdc.CullMode = D3D11_CULL_BACK;
-		rdc.FillMode = D3D11_FILL_SOLID;
-		rdc.FrontCounterClockwise = TRUE;
-
-		m_device->CreateRasterizerState(&rdc, m_rasterizerStateWireFrame.GetAddressOf());
-		m_context->RSSetState(m_rasterizerStateWireFrame.Get());
-	}
-
+	m_context->RSSetState(m_rasterizerState.Get());
 }
 
 // Presents the back buffer contents to the screen.
@@ -550,6 +511,7 @@ void Game::CreateResources()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "INSTANCEPOS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 	};
 	UINT elem_num = ARRAYSIZE(layout);
 
@@ -583,6 +545,16 @@ void Game::CreateResources()
 	}
 
 
+	//ラスタライズ設定
+	{
+		D3D11_RASTERIZER_DESC rdc;
+		ZeroMemory(&rdc, sizeof(rdc));
+		rdc.CullMode = D3D11_CULL_NONE;
+		rdc.FillMode = D3D11_FILL_SOLID;
+		rdc.FrontCounterClockwise = TRUE;
+
+		m_device->CreateRasterizerState(&rdc, m_rasterizerState.GetAddressOf());
+	}
 
 	// Create vertex buffer
 	SimpleVertex vertices[] =
@@ -624,6 +596,27 @@ void Game::CreateResources()
 		}
 	}
 
+	{
+		std::vector<INSTANCE_BUFFER> inst(MAXNUM);
+		for (int i = 0; i < MAXNUM; i++) {
+			inst[i].mPos = Random::OnSphere();
+		}
+		D3D11_BUFFER_DESC instBuffDesc;
+		ZeroMemory(&instBuffDesc, sizeof(instBuffDesc));
+
+		instBuffDesc.Usage = D3D11_USAGE_DYNAMIC;
+		instBuffDesc.ByteWidth = sizeof(INSTANCE_BUFFER) * MAXNUM;
+		instBuffDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		instBuffDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		instBuffDesc.MiscFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA instData;
+		ZeroMemory(&instData, sizeof(instData));
+
+		instData.pSysMem = &inst[0];
+		hr = m_device->CreateBuffer(&instBuffDesc, &instData, m_instanceBuffer.GetAddressOf());
+	}
+
 	Font::Initialize(m_device.Get(), m_context.Get(), L"myfile.spritefont");
 }
 
@@ -637,6 +630,7 @@ void Game::OnDeviceLost()
 	pShaderResView.Reset();
 	pSampler.Reset();
 
+	m_instanceBuffer.Reset();
 	m_constantBuffer.Reset();
 	m_vertexShader.Reset();
 	m_pixelShader.Reset();

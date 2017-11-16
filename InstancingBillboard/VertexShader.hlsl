@@ -10,6 +10,7 @@ struct VS_INPUT
 	float3 Pos : POSITION;
 	float3 Normal : NORMAL;
 	float2 Tex : TEXCOORD;
+	float3 InstancePos : INSTANCEPOS;
 };
 
 struct PS_INPUT
@@ -22,7 +23,8 @@ struct PS_INPUT
 PS_INPUT main(VS_INPUT input)
 {
 	PS_INPUT output = (PS_INPUT)0;
-	output.Pos = mul(float4(input.Pos,1), g_mWVP);
+	float3 pos = input.Pos * 0.01 + input.InstancePos;
+	output.Pos = mul(float4(pos,1), g_mWVP);
 	output.Normal = normalize(mul(input.Normal, (float3x3)g_mW));
 	output.Tex = input.Tex;
 	return output;
