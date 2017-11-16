@@ -13,12 +13,13 @@ cbuffer global
 struct PS_INPUT
 {
 	float4 Pos : SV_POSITION;
+	float4 Color : COLOR;
 	float3 Normal : TEXCOORD0;
 	float2 Tex : TEXCOORD1;
 };
 
 float4 main(PS_INPUT input) : SV_Target
 {
-	float4 color = txDiffuse.Sample(samLinear, input.Tex);
+	float4 color = txDiffuse.Sample(samLinear, input.Tex) * input.Color;
 	return color;
 }

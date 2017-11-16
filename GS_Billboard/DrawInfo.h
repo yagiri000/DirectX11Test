@@ -13,6 +13,5 @@ public:
 	Matrix world;
 	Matrix view;
 	Matrix proj;
-	UINT vertexCount;
 };
 

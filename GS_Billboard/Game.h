@@ -12,11 +12,12 @@ using Microsoft::WRL::ComPtr;
 //--------------------------------------------------------------------------------------
 // Structures
 //--------------------------------------------------------------------------------------
-struct SimpleVertex
+
+
+struct ParticleVertex
 {
 	DirectX::XMFLOAT3 Pos;
 	DirectX::XMFLOAT3 Normal;
-	DirectX::XMFLOAT2 UV;
 };
 
 //Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
@@ -25,6 +26,47 @@ struct SIMPLESHADER_CONSTANT_BUFFER
 	XMMATRIX mW;
 	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
 };
+
+//--------------------------------------------------------------------------------------
+// Helper for creating structured buffers with an SRV and UAV
+//--------------------------------------------------------------------------------------
+template <class T>
+HRESULT CreateStructuredBuffer(ID3D11Device* pd3dDevice, UINT iNumElements, ID3D11Buffer** ppBuffer, ID3D11ShaderResourceView** ppSRV, ID3D11UnorderedAccessView** ppUAV, const T* pInitialData = NULL)
+{
+	HRESULT hr = S_OK;
+
+	// Create SB
+	D3D11_BUFFER_DESC bufferDesc;
+	ZeroMemory(&bufferDesc, sizeof(bufferDesc));
+	bufferDesc.ByteWidth = iNumElements * sizeof(T);
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	bufferDesc.StructureByteStride = sizeof(T);
+
+	D3D11_SUBRESOURCE_DATA bufferInitData;
+	ZeroMemory(&bufferInitData, sizeof(bufferInitData));
+	bufferInitData.pSysMem = pInitialData;
+	pd3dDevice->CreateBuffer(&bufferDesc, (pInitialData) ? &bufferInitData : NULL, ppBuffer);
+
+	// Create SRV
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+	ZeroMemory(&srvDesc, sizeof(srvDesc));
+	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	srvDesc.Buffer.ElementWidth = iNumElements;
+	pd3dDevice->CreateShaderResourceView(*ppBuffer, &srvDesc, ppSRV);
+
+	// Create UAV
+	D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
+	ZeroMemory(&uavDesc, sizeof(uavDesc));
+	uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	uavDesc.Buffer.NumElements = iNumElements;
+	pd3dDevice->CreateUnorderedAccessView(*ppBuffer, &uavDesc, ppUAV);
+
+	return hr;
+}
 
 // 平面が原点を常に見るようにするテスト
 class Game
@@ -78,14 +120,21 @@ private:
 	ComPtr<ID3D11BlendState>		m_blendState;
 
 	ComPtr<ID3D11VertexShader>		m_vertexShader;
-	ComPtr<ID3D11PixelShader>		m_pixelShader;
-	ComPtr<ID3D11InputLayout>		m_vertexLayout;
-	ComPtr<ID3D11Buffer>			m_vertexBuffer;
+	ComPtr<ID3D11GeometryShader>		m_geometoryShader;
+	ComPtr<ID3D11PixelShader>	m_pixelShader;
+
 	ComPtr<ID3D11Buffer>			m_constantBuffer;
+
+	ComPtr<ID3D11Buffer>                       m_particles;
+	ComPtr<ID3D11ShaderResourceView>           m_particlesSRV;
+	ComPtr<ID3D11UnorderedAccessView>          m_particlesUAV;
 
 	ComPtr<ID3D11ShaderResourceView> pShaderResView;
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
+
+	static const UINT MAXNUM = 9999;
+	UINT m_num = 300;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
