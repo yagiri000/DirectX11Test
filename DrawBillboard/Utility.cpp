@@ -23,6 +23,11 @@ namespace Utility
 		return std::min(std::max(value, min), max);
 	}
 
+	unsigned int Clamp(unsigned int value, unsigned int min, unsigned int max)
+	{
+		return std::min(std::max(value, min), max);
+	}
+
 	// TODO : ³‚µ‚¢‚©ŒŸØ
 	Quaternion LookRotation(const Vector3 & dir)
 	{

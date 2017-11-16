@@ -87,6 +87,9 @@ private:
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
 
+	static const UINT MAXNUM = 100;
+	UINT m_num = MAXNUM;
+
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
 };

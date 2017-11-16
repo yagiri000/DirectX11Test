@@ -102,8 +102,6 @@ void Game::Render()
 		return;
 	}
 
-	static int NUM = 300;
-	static const int MAXNUM = 9999;
 	static Vector3 Positions[MAXNUM]; // それぞれのスプライトの位置
 	static bool IsFirstFrame = true;
 	static float RotateY = 0;
@@ -120,18 +118,22 @@ void Game::Render()
 	Clear();
 
 	Font::DrawQueue(L"FPS : " + std::to_wstring(m_timer.GetFramesPerSecond()), Vector2(20.0f, 20.0f));
-	Font::DrawQueue(L"NUM : " + std::to_wstring(NUM), Vector2(20.0f, 50.0f));
+	Font::DrawQueue(L"NUM : " + std::to_wstring(m_num), Vector2(20.0f, 50.0f));
 
 	// TODO: Add your rendering code here.
 	// Render a triangle
 	float time = (float)m_timer.GetTotalSeconds();
 
+	{
+		constexpr int PlusNum = 10;
+		if (GetKeyState('D') & 0x80) {
+			m_num += PlusNum;
+		}
+		if (GetKeyState('A') & 0x80 && m_num > PlusNum) {
+			m_num -= PlusNum;
+		}
 
-	if (GetKeyState('D') & 0x80) {
-		NUM += 1;
-	}
-	if (GetKeyState('A') & 0x80) {
-		NUM -= 1;
+		m_num = Utility::Clamp(m_num, 0, MAXNUM);
 	}
 
 
@@ -153,7 +155,7 @@ void Game::Render()
 
 	static std::vector<DrawInfo> vec;
 
-	for (int i = 0; i < NUM; i++) {
+	for (int i = 0; i < m_num; i++) {
 
 		constexpr float RotationSpeed = 2.0f;
 		Vector3 pos = Vector3::Transform(Positions[i], Matrix::CreateRotationY(time * RotationSpeed));
