@@ -51,6 +51,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3DDrawTest3", "3DDrawTest3\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GS_Billboard", "GS_Billboard\GS_Billboard.vcxproj", "{289D26D3-41DF-45C0-9E7B-8DE107795738}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DrawBillboard", "DrawBillboard\DrawBillboard.vcxproj", "{2F2A4A6E-682A-4961-8077-FC352F6089EB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -251,6 +253,14 @@ Global
 		{289D26D3-41DF-45C0-9E7B-8DE107795738}.Release|x64.Build.0 = Release|x64
 		{289D26D3-41DF-45C0-9E7B-8DE107795738}.Release|x86.ActiveCfg = Release|Win32
 		{289D26D3-41DF-45C0-9E7B-8DE107795738}.Release|x86.Build.0 = Release|Win32
+		{2F2A4A6E-682A-4961-8077-FC352F6089EB}.Debug|x64.ActiveCfg = Debug|x64
+		{2F2A4A6E-682A-4961-8077-FC352F6089EB}.Debug|x64.Build.0 = Debug|x64
+		{2F2A4A6E-682A-4961-8077-FC352F6089EB}.Debug|x86.ActiveCfg = Debug|Win32
+		{2F2A4A6E-682A-4961-8077-FC352F6089EB}.Debug|x86.Build.0 = Debug|Win32
+		{2F2A4A6E-682A-4961-8077-FC352F6089EB}.Release|x64.ActiveCfg = Release|x64
+		{2F2A4A6E-682A-4961-8077-FC352F6089EB}.Release|x64.Build.0 = Release|x64
+		{2F2A4A6E-682A-4961-8077-FC352F6089EB}.Release|x86.ActiveCfg = Release|Win32
+		{2F2A4A6E-682A-4961-8077-FC352F6089EB}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
