@@ -11,6 +11,7 @@
 #include "Utility.h"
 #include "Random.h"
 #include "DrawInfo.h"
+#include "Font.h"
 
 extern void ExitGame();
 
@@ -101,40 +102,61 @@ void Game::Render()
 		return;
 	}
 
+	static int NUM = 300;
+	static const int MAXNUM = 9999;
+	static Vector3 Positions[MAXNUM]; // それぞれのスプライトの位置
+	static bool IsFirstFrame = true;
+	static float RotateY = 0;
+
+	// 初めのフレームでそれぞれのスプライトの位置を初期化する
+	if (IsFirstFrame) {
+		for (int i = 0; i < MAXNUM; i++) {
+			Positions[i] = Random::OnSphere();
+		}
+		IsFirstFrame = false;
+	}
+
+
 	Clear();
+
+	Font::DrawQueue(L"FPS : " + std::to_wstring(m_timer.GetFramesPerSecond()), Vector2(20.0f, 20.0f));
+	Font::DrawQueue(L"NUM : " + std::to_wstring(NUM), Vector2(20.0f, 50.0f));
 
 	// TODO: Add your rendering code here.
 	// Render a triangle
-	float elapsed = m_timer.GetFrameCount() / 60.0f;
+	float time = (float)m_timer.GetTotalSeconds();
 
-	static Vector3 pos(0.2f, 0.0f, -0.2f);
-	const float Speed = 0.03f;
 
-	if (GetKeyState('W') & 0x80) {
-		pos += Speed * Vector3::Forward;
+	if (GetKeyState('D') & 0x80) {
+		NUM += 1;
 	}
 	if (GetKeyState('A') & 0x80) {
-		pos += Speed * Vector3::Left;
-	}
-	if (GetKeyState('S') & 0x80) {
-		pos += Speed * Vector3::Backward;
-	}
-	if (GetKeyState('D') & 0x80) {
-		pos += Speed * Vector3::Right;
-	}
-	if (GetKeyState('E') & 0x80) {
-		pos += Speed * Vector3::Up;
-	}
-	if (GetKeyState('Q') & 0x80) {
-		pos += Speed * Vector3::Down;
+		NUM -= 1;
 	}
 
+
+	// Set the input layout
+	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
+
+	// Set vertex buffer
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+
+	// Set primitive topology
+	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	m_context->RSSetState(m_rasterizerState.Get());
 
+	UINT mask = 0xffffffff;
+	m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
+
 	static std::vector<DrawInfo> vec;
 
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < NUM; i++) {
+
+		constexpr float RotationSpeed = 2.0f;
+		Vector3 pos = Vector3::Transform(Positions[i], Matrix::CreateRotationY(time * RotationSpeed));
 
 		DrawInfo di;
 
@@ -153,8 +175,9 @@ void Game::Render()
 		Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
 		//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
 		//ワールドトランスフォーム（絶対座標変換）
-		mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix()
-			* Matrix::CreateTranslation(pos * (float)i);
+		mWorld = Matrix::CreateScale(0.1f) 
+			* Matrix()
+			* Matrix::CreateTranslation(pos);
 
 		// プロジェクショントランスフォーム（射影変換）
 		int width, height;
@@ -170,8 +193,8 @@ void Game::Render()
 	}
 
 	std::sort(vec.begin(), vec.end(), [](const DrawInfo& a, const DrawInfo& b) {
-		Matrix am = a.world * a.view * a.proj;
-		Matrix bm = b.world * b.view * b.proj;
+		Matrix am = a.world * a.view;
+		Matrix bm = b.world * b.view;
 		return am._43 > bm._43;
 	});
 
@@ -197,7 +220,6 @@ void Game::Render()
 			//ワールド、カメラ、射影行列を渡す
 			XMMATRIX m = i.world*i.view*i.proj;
 			m = XMMatrixTranspose(m);
-
 			cb.mW = i.world.Transpose();
 			cb.mWVP = m;
 
@@ -215,6 +237,8 @@ void Game::Render()
 
 	vec.clear();
 
+	Font::Batch();
+
 	Present();
 }
 
@@ -223,7 +247,7 @@ void Game::Clear()
 {
 	// Clear the views.
 	// m_context->ClearRenderTargetView(m_renderTargetView.Get(), Color(0.1f, 0.1f, 0.1f));
-	m_context->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
+	m_context->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Black);
 	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
@@ -491,8 +515,6 @@ void Game::CreateResources()
 			return DX::ThrowIfFailed(E_FAIL);
 		}
 
-		UINT mask = 0xffffffff;
-		m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
 	}
 
 	// TODO: Initialize windows-size dependent objects here.
@@ -535,9 +557,6 @@ void Game::CreateResources()
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
-
-	// Set the input layout
-	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
 
 
 	// テクスチャ作成
@@ -584,13 +603,6 @@ void Game::CreateResources()
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
-	// Set vertex buffer
-	UINT stride = sizeof(SimpleVertex);
-	UINT offset = 0;
-	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-
-	// Set primitive topology
-	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	// コンスタントバッファー作成　シェーダーに変換行列を渡す用
 
@@ -609,12 +621,15 @@ void Game::CreateResources()
 			return DX::ThrowIfFailed(hr);
 		}
 	}
+
+	Font::Initialize(m_device.Get(), m_context.Get(), L"myfile.spritefont");
 }
 
 void Game::OnDeviceLost()
 {
 	// TODO: Add Direct3D resource cleanup here.
 
+	Font::OnDeviceLost();
 
 	pTexture.Reset();
 	pShaderResView.Reset();
