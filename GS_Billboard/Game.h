@@ -42,6 +42,7 @@ HRESULT CreateStructuredBuffer(ID3D11Device* pd3dDevice, UINT iNumElements, ID3D
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	bufferDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
 	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	bufferDesc.StructureByteStride = sizeof(T);
 
 	D3D11_SUBRESOURCE_DATA bufferInitData;
@@ -68,7 +69,6 @@ HRESULT CreateStructuredBuffer(ID3D11Device* pd3dDevice, UINT iNumElements, ID3D
 	return hr;
 }
 
-// 平面が原点を常に見るようにするテスト
 class Game
 {
 public:
@@ -125,6 +125,7 @@ private:
 
 	ComPtr<ID3D11Buffer>			m_constantBuffer;
 
+	ParticleVertex*								m_particleArray;
 	ComPtr<ID3D11Buffer>                       m_particles;
 	ComPtr<ID3D11ShaderResourceView>           m_particlesSRV;
 	ComPtr<ID3D11UnorderedAccessView>          m_particlesUAV;

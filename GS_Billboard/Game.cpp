@@ -47,8 +47,8 @@ private:
 
 Game::Game() :
 	m_window(nullptr),
-	m_outputWidth(800),
-	m_outputHeight(600),
+	m_outputWidth(1280),
+	m_outputHeight(720),
 	m_featureLevel(D3D_FEATURE_LEVEL_9_1)
 {
 }
@@ -120,8 +120,8 @@ void Game::Render()
 	Font::DrawQueue(L"FPS : " + std::to_wstring(m_timer.GetFramesPerSecond()), Vector2(20.0f, 20.0f));
 	Font::DrawQueue(L"NUM : " + std::to_wstring(m_num), Vector2(20.0f, 50.0f));
 
-	// TODO: Add your rendering code here.
-	// Render a triangle
+
+
 	float time = (float)m_timer.GetTotalSeconds();
 
 	{
@@ -135,14 +135,6 @@ void Game::Render()
 
 		m_num = Utility::Clamp(m_num, 0, MAXNUM);
 	}
-
-
-	// Set primitive topology
-	m_context->RSSetState(m_rasterizerState.Get());
-
-	UINT mask = 0xffffffff;
-	m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
-
 
 	// 行列計算
 	Matrix mView;
@@ -159,6 +151,46 @@ void Game::Render()
 	Game::GetDefaultSize(width, height);
 	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
+	{
+		// コンスタントバッファーに各種データを渡す
+		D3D11_MAPPED_SUBRESOURCE pData;
+		SIMPLESHADER_CONSTANT_BUFFER cb;
+		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+			//ワールド、カメラ、射影行列を渡す
+			XMMATRIX m = mView * mProj;
+			m = XMMatrixTranspose(m);
+			cb.mW = Matrix().Transpose();
+			cb.mWVP = m;
+
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+			m_context->Unmap(m_constantBuffer.Get(), 0);
+		}
+	}
+
+
+	{
+		for (int i = 0; i < m_num; i++) {
+			Vector3 pos = Vector3::Transform(Positions[i], Matrix::CreateRotationY(time * 0.5f));
+			m_particleArray[i].Pos = pos;
+		}
+		// コンスタントバッファーに各種データを渡す
+		D3D11_MAPPED_SUBRESOURCE pData;
+		if (SUCCEEDED(m_context->Map(m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
+
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(m_particleArray), sizeof(ParticleVertex) * MAXNUM);
+			m_context->Unmap(m_particles.Get(), 0);
+		}
+	}
+
+	// 
+	// ---------Rendering-------------
+	//
+
+	// Set primitive topology
+	m_context->RSSetState(m_rasterizerState.Get());
+
+	UINT mask = 0xffffffff;
+	m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
 
 	// 使用シェーダー登録
 	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
@@ -174,20 +206,6 @@ void Game::Render()
 	UINT srv_slot = 0;
 	ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
 	m_context->PSSetShaderResources(srv_slot, 1, srv);
-
-	// コンスタントバッファーに各種データを渡す
-	D3D11_MAPPED_SUBRESOURCE pData;
-	SIMPLESHADER_CONSTANT_BUFFER cb;
-	if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
-		//ワールド、カメラ、射影行列を渡す
-		XMMATRIX m = mView * mProj;
-		m = XMMatrixTranspose(m);
-		cb.mW = Matrix().Transpose();
-		cb.mWVP = m;
-
-		memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-		m_context->Unmap(m_constantBuffer.Get(), 0);
-	}
 
 	ID3D11ShaderResourceView* const     g_pNullSRV = NULL;       // Helper to Clear SRVs
 	ID3D11UnorderedAccessView* const    g_pNullUAV = NULL;       // Helper to Clear UAVs
@@ -287,8 +305,8 @@ void Game::OnWindowSizeChanged(int width, int height)
 void Game::GetDefaultSize(int& width, int& height) const
 {
 	// TODO: Change to desired default window size (note minimum size is 320x200).
-	width = 800;
-	height = 600;
+	width = 1280;
+	height = 720;
 }
 
 // These are the resources that depend on the device.
@@ -554,15 +572,14 @@ void Game::CreateResources()
 		}
 	}
 
-	const UINT iStartingWidth = (UINT)sqrt((FLOAT)MAXNUM);
-	ParticleVertex* particles = new ParticleVertex[MAXNUM];
+	m_particleArray = new ParticleVertex[MAXNUM];
 	for (UINT i = 0; i < MAXNUM; i++) {
-		particles[i].Pos = Random::OnSphere();
-		particles[i].Normal = Random::OnSphere();
+		m_particleArray[i].Pos = Random::OnSphere();
+		m_particleArray[i].Normal = Random::OnSphere();
 	}
 
 	// Create Structured Buffers
-	CreateStructuredBuffer< ParticleVertex >(m_device.Get(), MAXNUM, m_particles.GetAddressOf(), m_particlesSRV.GetAddressOf(), m_particlesUAV.GetAddressOf(), particles);
+	CreateStructuredBuffer< ParticleVertex >(m_device.Get(), MAXNUM, m_particles.GetAddressOf(), m_particlesSRV.GetAddressOf(), m_particlesUAV.GetAddressOf(), m_particleArray);
 
 	Font::Initialize(m_device.Get(), m_context.Get(), L"myfile.spritefont");
 }
