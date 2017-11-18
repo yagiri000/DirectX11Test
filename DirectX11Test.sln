@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2006
+VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "2DSpriteDrawTest", "Direct3D Win32 Game1\Direct3D Win32 Game1.vcxproj", "{530227AA-FE09-43B1-AE88-457E6F38F841}"
 EndProject
@@ -58,6 +58,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ParticleSystem_GS", "ParticleSystem_GS\ParticleSystem_GS.vcxproj", "{978197F7-063C-4545-AEE7-3AB000E91F2E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DitheringShader", "DitheringShader\DitheringShader.vcxproj", "{2F65BC9E-7C1E-44A1-B788-DECDE699DD06}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MeshTransform_TextureAsCoord", "MeshTransform_TextureAsCoord\MeshTransform_TextureAsCoord.vcxproj", "{28EA361D-F856-4D3C-BC26-3FCE6D98CFE8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -291,6 +293,14 @@ Global
 		{2F65BC9E-7C1E-44A1-B788-DECDE699DD06}.Release|x64.Build.0 = Release|x64
 		{2F65BC9E-7C1E-44A1-B788-DECDE699DD06}.Release|x86.ActiveCfg = Release|Win32
 		{2F65BC9E-7C1E-44A1-B788-DECDE699DD06}.Release|x86.Build.0 = Release|Win32
+		{28EA361D-F856-4D3C-BC26-3FCE6D98CFE8}.Debug|x64.ActiveCfg = Debug|x64
+		{28EA361D-F856-4D3C-BC26-3FCE6D98CFE8}.Debug|x64.Build.0 = Debug|x64
+		{28EA361D-F856-4D3C-BC26-3FCE6D98CFE8}.Debug|x86.ActiveCfg = Debug|Win32
+		{28EA361D-F856-4D3C-BC26-3FCE6D98CFE8}.Debug|x86.Build.0 = Debug|Win32
+		{28EA361D-F856-4D3C-BC26-3FCE6D98CFE8}.Release|x64.ActiveCfg = Release|x64
+		{28EA361D-F856-4D3C-BC26-3FCE6D98CFE8}.Release|x64.Build.0 = Release|x64
+		{28EA361D-F856-4D3C-BC26-3FCE6D98CFE8}.Release|x86.ActiveCfg = Release|Win32
+		{28EA361D-F856-4D3C-BC26-3FCE6D98CFE8}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
