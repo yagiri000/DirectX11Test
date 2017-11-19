@@ -105,12 +105,14 @@ void Game::Render()
 
 	static Vector3 Positions[MAXNUM]; // それぞれのスプライトの位置
 	static bool IsFirstFrame = true;
-	static float RotateY = 0;
+	static float RotateZ = 0;
 
 	// 初めのフレームでそれぞれのスプライトの位置を初期化する
 	if (IsFirstFrame) {
 		for (int i = 0; i < MAXNUM; i++) {
-			Positions[i] = Random::OnSphere();
+			//Positions[i] = Random::OnSphere();
+			float rate = (float)i / MAXNUM * 0.7f;
+			Positions[i] = Vector3(cos(rate * XM_2PI), 0.0f, sin(rate * XM_2PI));
 		}
 		IsFirstFrame = false;
 	}
@@ -125,15 +127,24 @@ void Game::Render()
 	float time = (float)m_timer.GetTotalSeconds();
 
 	{
-		constexpr int PlusNum = 1000;
-		if (GetKeyState('D') & 0x80) {
+		constexpr int PlusNum = 1;
+		if (GetKeyState('X') & 0x80) {
 			m_num += PlusNum;
 		}
-		if (GetKeyState('A') & 0x80 && m_num > PlusNum) {
+		if (GetKeyState('Y') & 0x80 && m_num > PlusNum) {
 			m_num -= PlusNum;
 		}
 
 		m_num = Utility::Clamp(m_num, 0, MAXNUM);
+	}
+	{
+		static constexpr float PlusNum = 0.01;
+		if (GetKeyState('D') & 0x80) {
+			RotateZ += PlusNum;
+		}
+		if (GetKeyState('A') & 0x80) {
+			RotateZ -= PlusNum;
+		}
 	}
 
 	// 行列計算
@@ -169,9 +180,17 @@ void Game::Render()
 
 
 	{
+		Vector3 cameraDir = lookat - eye;
+		cameraDir.Normalize();
+
 		for (int i = 0; i < m_num; i++) {
-			Vector3 pos = Vector3::Transform(Positions[i], Matrix::CreateRotationY(time * 0.5f));
+			static const float RotationSpeed = 2.0f;
+			auto trans = Matrix::CreateRotationY(time * RotationSpeed) * Matrix::CreateRotationZ(RotateZ);
+			Vector3 pos = Vector3::Transform(Positions[i], trans);
+			Vector3 next = Vector3::Transform(Positions[i+1], trans);
+			auto mView = Matrix::CreateLookAt(pos, next, cameraDir);
 			m_particleArray[i].Pos = pos;
+			m_particleArray[i].Tangent = Vector3(mView._11, mView._21, mView._31);
 		}
 		// コンスタントバッファーに各種データを渡す
 		D3D11_MAPPED_SUBRESOURCE pData;
@@ -188,6 +207,9 @@ void Game::Render()
 
 	// Set primitive topology
 	m_context->RSSetState(m_rasterizerState.Get());
+	if (GetKeyState('C') & 0x80) {
+		m_context->RSSetState(m_rasterizerStateWireFrame.Get());
+	}
 
 	UINT mask = 0xffffffff;
 	m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
@@ -222,7 +244,7 @@ void Game::Render()
 	m_context->GSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 	m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 
-	m_context->Draw(m_num, 0);
+	m_context->Draw(m_num-2, 0);
 
 	m_context->GSSetShader(nullptr, NULL, 0);
 
@@ -501,6 +523,15 @@ void Game::CreateResources()
 
 		m_device->CreateRasterizerState(&rdc, m_rasterizerState.GetAddressOf());
 	}
+	{
+		D3D11_RASTERIZER_DESC rdc;
+		ZeroMemory(&rdc, sizeof(rdc));
+		rdc.CullMode = D3D11_CULL_NONE;
+		rdc.FillMode = D3D11_FILL_WIREFRAME;
+		rdc.FrontCounterClockwise = TRUE;
+
+		m_device->CreateRasterizerState(&rdc, m_rasterizerStateWireFrame.GetAddressOf());
+	}
 
 	// TODO : 例外処理が妥当か確認する．適当に書き直したので合っているかわからない
 	HRESULT hr;
@@ -575,7 +606,6 @@ void Game::CreateResources()
 	m_particleArray = new ParticleVertex[MAXNUM];
 	for (UINT i = 0; i < MAXNUM; i++) {
 		m_particleArray[i].Pos = Random::OnSphere();
-		m_particleArray[i].Normal = Random::OnSphere();
 	}
 
 	// Create Structured Buffers

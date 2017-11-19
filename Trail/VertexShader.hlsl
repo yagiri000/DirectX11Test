@@ -8,7 +8,7 @@ cbuffer global
 struct Particle
 {
 	float3 Pos;
-	float3 Normal;
+	float3 Tangent;
 };
 
 StructuredBuffer<Particle> ParticlesRO : register(t0);
@@ -16,13 +16,17 @@ StructuredBuffer<Particle> ParticlesRO : register(t0);
 struct GS_INPUT
 {
 	float4 Pos : SV_POSITION;
-	float3 Normal : TEXCOORD0;
+	float4 NextPos : NORMAL;
+	float4 Tangent : TANGENT;
+	float4 NextTan : NEXT_TANGENT;
 };
 
 GS_INPUT main(uint ID : SV_VertexID)
 {
 	GS_INPUT output = (GS_INPUT)0;
 	output.Pos = float4(ParticlesRO[ID].Pos, 1);
-	output.Normal = normalize(mul(ParticlesRO[ID].Normal, (float3x3)g_mW));
+	output.NextPos = float4(ParticlesRO[ID+1].Pos, 1);
+	output.Tangent = float4(ParticlesRO[ID].Tangent, 1);
+	output.NextTan = float4(ParticlesRO[ID+1].Tangent, 1);
 	return output;
 }

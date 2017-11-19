@@ -17,7 +17,7 @@ using Microsoft::WRL::ComPtr;
 struct ParticleVertex
 {
 	DirectX::XMFLOAT3 Pos;
-	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT3 Tangent;
 };
 
 //Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
@@ -134,7 +134,7 @@ private:
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
 
-	static const UINT MAXNUM = 10000;
+	static const UINT MAXNUM = 30;
 	UINT m_num = MAXNUM;
 
     // Rendering loop timer.

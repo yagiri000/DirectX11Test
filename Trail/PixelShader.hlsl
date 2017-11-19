@@ -10,6 +10,7 @@ cbuffer global
 };
 
 
+
 struct PS_INPUT
 {
 	float4 Pos : SV_POSITION;
@@ -21,5 +22,6 @@ struct PS_INPUT
 float4 main(PS_INPUT input) : SV_Target
 {
 	float4 color = txDiffuse.Sample(samLinear, input.Tex) * input.Color;
+	color = input.Color;
 	return color;
 }
