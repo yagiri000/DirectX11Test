@@ -11,8 +11,6 @@
 #include "Utility.h"
 #include "Random.h"
 #include "Input.h"
-#include "Effects.h"
-#include "VertexTypes.h"
 
 extern void ExitGame();
 
@@ -90,7 +88,7 @@ void Game::Update(DX::StepTimer const& timer)
 	Input::Update();
 	float deltaTime = float(timer.GetElapsedSeconds());
 
-
+	
 	static const auto Lerp = [](float a, float b, float rate) {
 		rate = pow(rate, 0.75f);
 		return a * (1.0f - rate) + b * rate;
@@ -108,6 +106,43 @@ void Game::Update(DX::StepTimer const& timer)
 		m_context->RSSetState(m_rasterizerStateWireFrame.Get());
 	}
 
+	static float R0 = 0.5f;
+	static float R1 = 1.0f;
+	float rate = elapsedTime / 1.0f;
+	rate = Utility::Clamp(rate, 0.0f, 1.0f);
+	R0 = Lerp(0.0f, 1.0f, rate);
+	R1 = Lerp(0.5f, 1.0f, rate);
+	static constexpr UINT ColumnsPlus = Columns + 1;
+	static constexpr UINT num = (ColumnsPlus * Rows);
+
+	static SimpleVertex vertices[num];
+
+	for (UINT i = 0; i < ColumnsPlus; i++) {
+		for (UINT j = 0; j < Rows; j++) {
+			UINT num = i * Rows + j;
+			float x = (float)i / Columns;
+			float y = (float)j / (Rows - 1);
+			float angle = XM_2PI * x;
+			vertices[num].Pos = XMFLOAT3(cos(angle) * Lerp(R0, R1, y), sin(angle) * Lerp(R0, R1, y), 0.0f);
+			vertices[num].Normal = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			vertices[num].UV = XMFLOAT2(x * 6.0f, y);
+			float alpha;
+			if (y < 0.5f) {
+				alpha = 2.0f * y;
+			}
+			else {
+				alpha = 1.0f - 2.0 * (y - 0.5f);
+			}
+			vertices[num].Color = XMFLOAT4(1.0f, 0.1f, 0.0f, pow(alpha, 1.0f));
+		}
+	}
+
+
+	// データを突っ込む
+	D3D11_MAPPED_SUBRESOURCE msr;
+	m_context->Map(m_vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+	memcpy(msr.pData, vertices, sizeof(SimpleVertex) * num); // 3頂点分コピー
+	m_context->Unmap(m_vertexBuffer.Get(), 0);
 }
 
 // Draws the scene.
@@ -170,15 +205,6 @@ void Game::Render()
 	Game::GetDefaultSize(width, height);
 	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
-
-
-	UINT stride = sizeof(VertexPositionNormalTangentColorTexture);
-	UINT offset = 0;
-	m_context->IASetVertexBuffers(0, 1, m_model->vertexBuffer.GetAddressOf(), &stride, &offset);
-	m_context->IASetIndexBuffer(m_model->indexBuffer.Get(), m_model->indexFormat, 0);
-	m_context->IASetPrimitiveTopology(m_model->primitiveType);
-
-
 	// 使用シェーダー登録
 	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
 	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
@@ -186,19 +212,14 @@ void Game::Render()
 	// サンプラー
 	UINT smp_slot = 0;
 	ID3D11SamplerState* smp[1] = { pSampler.Get() };
+	m_context->VSSetSamplers(smp_slot, 1, smp);
 	m_context->PSSetSamplers(smp_slot, 1, smp);
 
 	// シェーダーリソースビュー（テクスチャ）
-	{
-		UINT srv_slot = 0;
-		ID3D11ShaderResourceView* srv[1] = { pCoordTextureSRV.Get() };
-		m_context->VSSetShaderResources(srv_slot, 1, srv);
-	}
-	{
-		UINT srv_slot = 0;
-		ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
-		m_context->PSSetShaderResources(srv_slot, 1, srv);
-	}
+	UINT srv_slot = 0;
+	ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
+	m_context->VSSetShaderResources(srv_slot, 1, srv);
+	m_context->PSSetShaderResources(srv_slot, 1, srv);
 
 	// コンスタントバッファーに各種データを渡す
 	{
@@ -240,7 +261,7 @@ void Game::Render()
 	//このコンスタントバッファーを、どのシェーダーで使うかを指定
 	m_context->PSSetConstantBuffers(0, 1, m_pixelConstantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
 
-	m_context.Get()->DrawIndexed(m_model->indexCount, 0, 0);
+	m_context.Get()->DrawIndexed(m_indexCount, 0, 0);
 
 	Present();
 }
@@ -533,17 +554,10 @@ void Game::CreateResources()
 	D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 52, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	UINT elem_num = ARRAYSIZE(layout);
-
-	XMFLOAT3 position;
-	XMFLOAT3 normal;
-	XMFLOAT4 tangent;
-	uint32_t color;
-	XMFLOAT2 textureCoordinate;
 
 	// 入力レイアウト作成
 	hr = m_device.Get()->CreateInputLayout(layout, elem_num, vscode.get(),
@@ -562,12 +576,6 @@ void Game::CreateResources()
 		return DX::ThrowIfFailed(hr);
 	}
 
-	hr = DirectX::CreateWICTextureFromFile(m_device.Get(), L"RingMeshAnimation.png", &pCoordTexture, &pCoordTextureSRV);
-	if (FAILED(hr)) {
-		return DX::ThrowIfFailed(hr);
-	}
-
-
 	// サンプラー作成
 	D3D11_SAMPLER_DESC sampDesc;
 	ZeroMemory(&sampDesc, sizeof(sampDesc));
@@ -584,24 +592,102 @@ void Game::CreateResources()
 	}
 
 
-
-	auto m_fxFactory = std::make_unique<EffectFactory>(m_device.Get());
-
-#ifdef _DEBUG
-	static const auto LoadModel = [&](const std::wstring& filename) {
-		std::wstring filename_ = L"../Debug/" + filename;
-		return  Model::CreateFromCMO(m_device.Get(), filename_.c_str(), *m_fxFactory);
+	static const auto Lerp = [](float a, float b, float rate) {
+		return a * (1.0f - rate) + b * rate;
 	};
-#else
-	// TODO : Release用を作る
+
+	static constexpr float R0 = 0.5f;
+	static constexpr float R1 = 1.0f;
+	static constexpr UINT ColumnsPlus = Columns + 1;
+	static constexpr UINT num = (ColumnsPlus * Rows);
+
+	SimpleVertex vertices[num];
+
+	for (UINT i = 0; i < ColumnsPlus; i++) {
+		for (UINT j = 0; j < Rows; j++) {
+			UINT num = i * Rows + j;
+			float x = (float)i / Columns;
+			float y = (float)j / (Rows - 1);
+			float angle = XM_2PI * x;
+			vertices[num].Pos = XMFLOAT3(cos(angle) * Lerp(R0, R1, y), sin(angle) * Lerp(R0, R1, y), 0.0f);
+			vertices[num].Normal = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			vertices[num].UV = XMFLOAT2(x * 4.0f, y);
+			float alpha;
+			if (y < 0.5f) {
+				alpha = 2.0f * y;
+			}
+			else {
+				alpha = 1.0f - 2.0 * (y - 0.5f);
+			}
+			vertices[num].Color = XMFLOAT4(0.5f, 0.5f, 1.0f, alpha*alpha);
+		}
+	}
 
 
-#endif
+	// メッシュのインデックスを読み込みます。インデックスの 3 つ 1 組の値のそれぞれは、次のものを表します
+	// 画面上に描画される三角形を表します。
+	// たとえば、0,2,1 とは、頂点バッファーからのインデックスを意味します:
+	// 0、2、1 を持つ頂点が、このメッシュの
+	// 最初の三角形を構成することを意味します。
+	static unsigned short cubeIndices[Columns*(Rows - 1) * 6];
+	int count = 0;
+	for (UINT i = 0; i < Columns; i++) {
+		for (UINT j = 0; j < Rows - 1; j++) {
+			int n = j + i * Rows;
+			int nPlusOne = j + 1 + i * Rows;
+			cubeIndices[count++] = n % num;
+			cubeIndices[count++] = (n + Rows) % num;
+			cubeIndices[count++] = (nPlusOne) % num;
+			cubeIndices[count++] = (nPlusOne) % num;
+			cubeIndices[count++] = (n + Rows) % num;
+			cubeIndices[count++] = (nPlusOne + Rows) % num;
+		}
+	}
 
-	auto model = LoadModel(L"Ring.cmo");
-	m_model = std::move(model->meshes[0]->meshParts[0]);
+
+	D3D11_BUFFER_DESC bd;
+	ZeroMemory(&bd, sizeof(bd));
+	bd.ByteWidth = sizeof(SimpleVertex) * num;
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.Usage = D3D11_USAGE_DYNAMIC;
+	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	D3D11_SUBRESOURCE_DATA InitData;
+	ZeroMemory(&InitData, sizeof(InitData));
+	InitData.pSysMem = vertices;
+	hr = m_device.Get()->CreateBuffer(&bd, &InitData, m_vertexBuffer.GetAddressOf());
+	if (FAILED(hr))
+		return DX::ThrowIfFailed(hr);
+
+	// Set vertex buffer
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
 
+	m_indexCount = ARRAYSIZE(cubeIndices);
+
+	D3D11_SUBRESOURCE_DATA indexBufferData = { 0 };
+	indexBufferData.pSysMem = cubeIndices;
+	indexBufferData.SysMemPitch = 0;
+	indexBufferData.SysMemSlicePitch = 0;
+	CD3D11_BUFFER_DESC indexBufferDesc(sizeof(cubeIndices), D3D11_BIND_INDEX_BUFFER);
+	DX::ThrowIfFailed(
+		m_device->CreateBuffer(
+			&indexBufferDesc,
+			&indexBufferData,
+			&m_indexBuffer
+		)
+	);
+
+	m_context->IASetIndexBuffer(
+		m_indexBuffer.Get(),
+		DXGI_FORMAT_R16_UINT, // 各インデックスは、1 つの 16 ビット符号なし整数 (short) です。
+		0
+	);
+
+	// Set primitive topology
+	m_context.Get()->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//コンスタントバッファー作成　バーテックスシェーダー用
 	{
@@ -671,6 +757,7 @@ void Game::OnDeviceLost()
 	m_vertexShader.Reset();
 	m_pixelShader.Reset();
 	m_vertexLayout.Reset();
+	m_vertexBuffer.Reset();
 
 	m_blendState.Reset();
 	m_rasterizerState.Reset();

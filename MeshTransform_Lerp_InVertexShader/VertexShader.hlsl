@@ -1,6 +1,3 @@
-
-Texture2D<float4> txCoords : register(t0);
-
 //ÉOÉçÅ[ÉoÉã
 cbuffer global : register(b0)
 {
@@ -13,10 +10,8 @@ struct VS_INPUT
 {
 	float3 Pos : POSITION;
 	float3 Normal : NORMAL;
-	float4 Tangent : TANGENT;
-	float4  Color : COLOR;
 	float2 Tex : TEXCOORD;
-	uint vertexId : SV_VertexID;
+	float4 Color : COLOR;
 };
 
 struct PS_INPUT
@@ -24,20 +19,17 @@ struct PS_INPUT
 	float4 Pos : SV_POSITION;
 	float4 Color : COLOR;
 	float3 Normal : TEXCOORD0;
-	float2 Tex : TEXCOORD1;
+	float2 UV : TEXCOORD1;
+	float2 Tex : TEXCOORD2;
 };
-
-
-static const float PI = 3.141592;
 
 PS_INPUT main(VS_INPUT input)
 {
 	PS_INPUT output = (PS_INPUT)0;
-	float4 coord = txCoords.Load(uint3(input.vertexId, 0, 0));
-	coord = coord * 2 - 1.0;
-	float3 pos = coord;
-	output.Pos = mul(float4(pos, 1), g_mWVP);
-	output.Tex = input.Tex + g_UVScroll.xy;
+	output.Pos = mul(float4(input.Pos, 1), g_mWVP);
+	output.Normal = normalize(mul(input.Normal, (float3x3)g_mW));
+	output.UV = input.Tex + float2(g_UVScroll.x, g_UVScroll.y);
+	output.Tex = input.Tex ;
 	output.Color = input.Color;
 	return output;
 }

@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "pch.h"
 #include "StepTimer.h"
 
 using namespace DirectX;
@@ -13,6 +12,13 @@ using Microsoft::WRL::ComPtr;
 //--------------------------------------------------------------------------------------
 // Structures
 //--------------------------------------------------------------------------------------
+struct SimpleVertex
+{
+	DirectX::XMFLOAT3 Pos;
+	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT2 UV;
+	DirectX::XMFLOAT4 Color;
+};
 
 //Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
 struct SIMPLESHADER_VERTEX_CONSTANT_BUFFER
@@ -82,17 +88,15 @@ private:
 	ComPtr<ID3D11VertexShader>		m_vertexShader;
 	ComPtr<ID3D11PixelShader>		m_pixelShader;
 	ComPtr<ID3D11InputLayout>		m_vertexLayout;
+	ComPtr<ID3D11Buffer>			m_vertexBuffer;
+	ComPtr<ID3D11Buffer>			m_indexBuffer;
 	ComPtr<ID3D11Buffer>			m_vertexConstantBuffer;
 	ComPtr<ID3D11Buffer>			m_pixelConstantBuffer;
-	std::shared_ptr<ModelMeshPart>	m_model;
+	UINT							m_indexCount;
 
 	ComPtr<ID3D11ShaderResourceView> pShaderResView;
-	ComPtr<ID3D11Resource> pTexture;
-
-	ComPtr<ID3D11ShaderResourceView> pCoordTextureSRV;
-	ComPtr<ID3D11Resource> pCoordTexture;
-
 	ComPtr<ID3D11SamplerState> pSampler;
+	ComPtr<ID3D11Resource> pTexture;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
