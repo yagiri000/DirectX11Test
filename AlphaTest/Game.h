@@ -15,7 +15,6 @@ using Microsoft::WRL::ComPtr;
 struct SimpleVertex
 {
 	DirectX::XMFLOAT3 Pos;
-	DirectX::XMFLOAT3 Normal;
 	DirectX::XMFLOAT2 UV;
 	DirectX::XMFLOAT4 Color;
 };
@@ -26,7 +25,7 @@ struct SIMPLESHADER_VERTEX_CONSTANT_BUFFER
 	XMMATRIX mW;
 	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
 	XMVECTOR mUV;
-	XMVECTOR mLife;//正規化された生存時間( = elapsedTime / lifeTime)
+	XMVECTOR mAlphaThreshold;//正規化された生存時間( = elapsedTime / lifeTime)
 };
 
 // 

@@ -8,7 +8,7 @@ cbuffer global : register(b0)
 	matrix g_mW;
 	matrix g_mWVP; //ワールド、ビュー、射影の合成変換行列
 	float4 g_UVScroll;
-	float4 g_Life;
+	float4 g_AlphaThreshold;
 };
 
 
@@ -22,9 +22,9 @@ struct PS_INPUT
 
 float4 main(PS_INPUT input) : SV_Target
 {
-	//float4 color = txDiffuse.Sample(samLinear, input.UV) * input.Color;
-	float4 color = input.Color;
-	// color.w = input.Tex.x * input.Tex.x * color.w;
-	color = float4(1.0f, 1.0f, 1.0f, 1.0 - g_Life.x);
+	float4 color = txDiffuse.Sample(samLinear, input.UV) * input.Color;
+	clip(color.w - g_AlphaThreshold.x);
+	//color = float4(1.0f, 1.0f, 1.0f, 1.0);
+	color.w = 1.0;
 	return color;
 }

@@ -94,10 +94,10 @@ void Game::Update(DX::StepTimer const& timer)
 		return a * (1.0f - rate) + b * rate;
 	};
 
-	if (Input::GetKeyDown(Keyboard::X)) {
+	if (Input::GetKeyDown(Keyboard::C)) {
 		m_context->RSSetState(m_rasterizerState.Get());
 	}
-	if (Input::GetKeyDown(Keyboard::C)) {
+	if (Input::GetKeyDown(Keyboard::V)) {
 		m_context->RSSetState(m_rasterizerStateWireFrame.Get());
 	}
 
@@ -118,9 +118,6 @@ void Game::Render()
 
 	static float elapsed = 0.0f;
 	elapsed += m_timer.GetElapsedSeconds();
-	if (Input::GetKeyDown(Keyboard::Z)) {
-		elapsed = 0.0f;
-	}
 
 	static Vector3 pos = Vector3::Zero;
 	static constexpr float Speed = 0.03f;
@@ -144,6 +141,15 @@ void Game::Render()
 		pos += Speed * Vector3::Down;
 	}
 
+	static float alphaThreshold = 0.5f;
+	static constexpr float AlphaThresholdSpeed = 0.01f;
+
+	if (Input::GetKey(Keyboard::Z)) {
+		alphaThreshold -= AlphaThresholdSpeed;
+	}
+	if (Input::GetKey(Keyboard::X)) {
+		alphaThreshold += AlphaThresholdSpeed;
+	}
 
 
 	// 行列計算
@@ -195,10 +201,8 @@ void Game::Render()
 
 			cb.mW = mWorld.Transpose();
 			cb.mWVP = m;
-			cb.mUV = XMVectorSet(elapsed, 0.0f, 0.0f, 0.0f);
-			static constexpr float lifeTime = 1.0f;
-			float life = Utility::Clamp(elapsed / lifeTime, 0.0f, 1.0f);
-			cb.mLife = XMVectorSet(life, 0.0f, 0.0f, 0.0f);
+			cb.mUV = XMVectorSet(elapsed * 0.2f, 0.0f, 0.0f, 0.0f);
+			cb.mAlphaThreshold = XMVectorSet(alphaThreshold, 0.0f, 0.0f, 0.0f);
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
 			m_context->Unmap(m_constantBuffer.Get(), 0);
@@ -499,9 +503,8 @@ void Game::CreateResources()
 	// 入力レイアウト定義
 	D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TARGETPOS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // NORMALとして使用せず，Lerp先を設定する
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	UINT elem_num = ARRAYSIZE(layout);
 
@@ -542,8 +545,8 @@ void Game::CreateResources()
 		return a * (1.0f - rate) + b * rate;
 	};
 
-	static constexpr float R0 = 0.5f * 0.5f;
-	static constexpr float R1 = 1.0f * 0.5f;
+	static constexpr float R0 = 0.5f;
+	static constexpr float R1 = 1.0f;
 	static constexpr UINT ColumnsPlus = Columns + 1;
 	static constexpr UINT num = (ColumnsPlus * Rows);
 
@@ -556,7 +559,6 @@ void Game::CreateResources()
 			float y = (float)j / (Rows - 1);
 			float angle = XM_2PI * x;
 			vertices[num].Pos = XMFLOAT3(cos(angle) * Lerp(R0, R1, y), sin(angle) * Lerp(R0, R1, y), 0.0f);
-			vertices[num].Normal = XMFLOAT3(cos(angle) * 1.0f, sin(angle) * 1.0f, 0.0f);
 			vertices[num].UV = XMFLOAT2(x * 4.0f, y);
 			float alpha;
 			if (y < 0.5f) {
@@ -566,7 +568,7 @@ void Game::CreateResources()
 				alpha = 1.0f - 2.0 * (y - 0.5f);
 			}
 			alpha = Utility::Clamp(0.0f, 1.0f, alpha*alpha);
-			vertices[num].Color = XMFLOAT4(1.0f, 0.1f, 0.0f, alpha);
+			vertices[num].Color = XMFLOAT4(1.0f, 0.1f, 0.0f, 1.0f);
 		}
 	}
 
