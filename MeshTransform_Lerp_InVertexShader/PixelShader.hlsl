@@ -7,6 +7,8 @@ cbuffer global : register(b0)
 {
 	matrix g_mW;
 	matrix g_mWVP; //ワールド、ビュー、射影の合成変換行列
+	float4 g_UVScroll;
+	float4 g_Life;
 };
 
 
@@ -23,5 +25,6 @@ float4 main(PS_INPUT input) : SV_Target
 {
 	float4 color = txDiffuse.Sample(samLinear, input.UV) * input.Color;
 	// color.w = input.Tex.x * input.Tex.x * color.w;
+	color = float4(1.0f, 1.0f, 1.0f, 1.0f);
 	return color;
 }

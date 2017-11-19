@@ -25,16 +25,11 @@ struct SIMPLESHADER_VERTEX_CONSTANT_BUFFER
 {
 	XMMATRIX mW;
 	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
-	XMVECTOR UV;
+	XMVECTOR mUV;
+	XMVECTOR mLife;//正規化された生存時間( = elapsedTime / lifeTime)
 };
 
-struct SIMPLESHADER_PIXEL_CONSTANT_BUFFER
-{
-	XMMATRIX mW;
-	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
-};
-
-// 平面が原点を常に見るようにするテスト
+// 
 class Game
 {
 public:
@@ -90,8 +85,7 @@ private:
 	ComPtr<ID3D11InputLayout>		m_vertexLayout;
 	ComPtr<ID3D11Buffer>			m_vertexBuffer;
 	ComPtr<ID3D11Buffer>			m_indexBuffer;
-	ComPtr<ID3D11Buffer>			m_vertexConstantBuffer;
-	ComPtr<ID3D11Buffer>			m_pixelConstantBuffer;
+	ComPtr<ID3D11Buffer>			m_constantBuffer;
 	UINT							m_indexCount;
 
 	ComPtr<ID3D11ShaderResourceView> pShaderResView;

@@ -94,11 +94,6 @@ void Game::Update(DX::StepTimer const& timer)
 		return a * (1.0f - rate) + b * rate;
 	};
 
-	static float elapsedTime = 0.0f;
-	elapsedTime += deltaTime;
-	if (Input::GetKeyDown(Keyboard::Z)) {
-		elapsedTime = 0.0f;
-	}
 	if (Input::GetKeyDown(Keyboard::X)) {
 		m_context->RSSetState(m_rasterizerState.Get());
 	}
@@ -106,43 +101,6 @@ void Game::Update(DX::StepTimer const& timer)
 		m_context->RSSetState(m_rasterizerStateWireFrame.Get());
 	}
 
-	static float R0 = 0.5f;
-	static float R1 = 1.0f;
-	float rate = elapsedTime / 1.0f;
-	rate = Utility::Clamp(rate, 0.0f, 1.0f);
-	R0 = Lerp(0.0f, 1.0f, rate);
-	R1 = Lerp(0.5f, 1.0f, rate);
-	static constexpr UINT ColumnsPlus = Columns + 1;
-	static constexpr UINT num = (ColumnsPlus * Rows);
-
-	static SimpleVertex vertices[num];
-
-	for (UINT i = 0; i < ColumnsPlus; i++) {
-		for (UINT j = 0; j < Rows; j++) {
-			UINT num = i * Rows + j;
-			float x = (float)i / Columns;
-			float y = (float)j / (Rows - 1);
-			float angle = XM_2PI * x;
-			vertices[num].Pos = XMFLOAT3(cos(angle) * Lerp(R0, R1, y), sin(angle) * Lerp(R0, R1, y), 0.0f);
-			vertices[num].Normal = XMFLOAT3(0.0f, 0.0f, 1.0f);
-			vertices[num].UV = XMFLOAT2(x * 6.0f, y);
-			float alpha;
-			if (y < 0.5f) {
-				alpha = 2.0f * y;
-			}
-			else {
-				alpha = 1.0f - 2.0 * (y - 0.5f);
-			}
-			vertices[num].Color = XMFLOAT4(1.0f, 0.1f, 0.0f, pow(alpha, 1.0f));
-		}
-	}
-
-
-	// データを突っ込む
-	D3D11_MAPPED_SUBRESOURCE msr;
-	m_context->Map(m_vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
-	memcpy(msr.pData, vertices, sizeof(SimpleVertex) * num); // 3頂点分コピー
-	m_context->Unmap(m_vertexBuffer.Get(), 0);
 }
 
 // Draws the scene.
@@ -157,7 +115,12 @@ void Game::Render()
 
 	// TODO: Add your rendering code here.
 	// Render a triangle
-	float elapsed = m_timer.GetFrameCount() / 60.0f;
+
+	static float elapsed = 0.0f;
+	elapsed += m_timer.GetElapsedSeconds();
+	if (Input::GetKeyDown(Keyboard::Z)) {
+		elapsed = 0.0f;
+	}
 
 	static Vector3 pos = Vector3::Zero;
 	static constexpr float Speed = 0.03f;
@@ -225,41 +188,24 @@ void Game::Render()
 	{
 		D3D11_MAPPED_SUBRESOURCE pData;
 		SIMPLESHADER_VERTEX_CONSTANT_BUFFER cb;
-		if (SUCCEEDED(m_context->Map(m_vertexConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
 			//ワールド、カメラ、射影行列を渡す
 			XMMATRIX m = mWorld*mView*mProj;
 			m = XMMatrixTranspose(m);
 
 			cb.mW = mWorld.Transpose();
 			cb.mWVP = m;
-			cb.UV = XMVectorSet(elapsed, 0.0f, 0.0f, 0.0f);
+			cb.mUV = XMVectorSet(elapsed, 0.0f, 0.0f, 0.0f);
+			static constexpr float lifeTime = 1.0f;
+			float life = Utility::Clamp(elapsed / lifeTime, 0.0f, 1.0f);
+			cb.mLife = XMVectorSet(life, 0.0f, 0.0f, 0.0f);
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-			m_context->Unmap(m_vertexConstantBuffer.Get(), 0);
+			m_context->Unmap(m_constantBuffer.Get(), 0);
 		}
 	}
-	m_context->VSSetConstantBuffers(0, 1, m_vertexConstantBuffer.GetAddressOf());//バーテックスバッファーで使う
-
-
-	// コンスタントバッファーに各種データを渡す
-	{
-		D3D11_MAPPED_SUBRESOURCE pData;
-		SIMPLESHADER_PIXEL_CONSTANT_BUFFER cb;
-		if (SUCCEEDED(m_context->Map(m_pixelConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
-			//ワールド、カメラ、射影行列を渡す
-			XMMATRIX m = mWorld*mView*mProj;
-			m = XMMatrixTranspose(m);
-
-			cb.mW = mWorld.Transpose();
-			cb.mWVP = m;
-
-			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-			m_context->Unmap(m_pixelConstantBuffer.Get(), 0);
-		}
-	}
-
-	//このコンスタントバッファーを、どのシェーダーで使うかを指定
-	m_context->PSSetConstantBuffers(0, 1, m_pixelConstantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+	m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//バーテックスバッファーで使う
+	m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
 
 	m_context.Get()->DrawIndexed(m_indexCount, 0, 0);
 
@@ -553,7 +499,7 @@ void Game::CreateResources()
 	// 入力レイアウト定義
 	D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // NORMALとして使用せず，Lerp先を設定する
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
@@ -596,8 +542,8 @@ void Game::CreateResources()
 		return a * (1.0f - rate) + b * rate;
 	};
 
-	static constexpr float R0 = 0.5f;
-	static constexpr float R1 = 1.0f;
+	static constexpr float R0 = 0.5f * 0.8f;
+	static constexpr float R1 = 1.0f * 0.8f;
 	static constexpr UINT ColumnsPlus = Columns + 1;
 	static constexpr UINT num = (ColumnsPlus * Rows);
 
@@ -610,7 +556,7 @@ void Game::CreateResources()
 			float y = (float)j / (Rows - 1);
 			float angle = XM_2PI * x;
 			vertices[num].Pos = XMFLOAT3(cos(angle) * Lerp(R0, R1, y), sin(angle) * Lerp(R0, R1, y), 0.0f);
-			vertices[num].Normal = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			vertices[num].Normal = XMFLOAT3(cos(angle) * 1.0f, sin(angle) * 1.0f, 0.0f);
 			vertices[num].UV = XMFLOAT2(x * 4.0f, y);
 			float alpha;
 			if (y < 0.5f) {
@@ -619,7 +565,7 @@ void Game::CreateResources()
 			else {
 				alpha = 1.0f - 2.0 * (y - 0.5f);
 			}
-			vertices[num].Color = XMFLOAT4(0.5f, 0.5f, 1.0f, alpha*alpha);
+			vertices[num].Color = XMFLOAT4(1.0f, 0.1f, 0.0f, alpha*alpha);
 		}
 	}
 
@@ -699,22 +645,7 @@ void Game::CreateResources()
 		cb.StructureByteStride = 0;
 		cb.Usage = D3D11_USAGE_DYNAMIC;
 
-		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_vertexConstantBuffer.GetAddressOf());
-		if (FAILED(hr)) {
-			return DX::ThrowIfFailed(hr);
-		}
-	}
-	//コンスタントバッファー作成　ピクセルシェーダー用
-	{
-		D3D11_BUFFER_DESC cb;
-		cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		cb.ByteWidth = sizeof(SIMPLESHADER_PIXEL_CONSTANT_BUFFER);
-		cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		cb.MiscFlags = 0;
-		cb.StructureByteStride = 0;
-		cb.Usage = D3D11_USAGE_DYNAMIC;
-
-		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_pixelConstantBuffer.GetAddressOf());
+		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
 		if (FAILED(hr)) {
 			return DX::ThrowIfFailed(hr);
 		}
@@ -752,8 +683,7 @@ void Game::OnDeviceLost()
 	pShaderResView.Reset();
 	pSampler.Reset();
 
-	m_vertexConstantBuffer.Reset();
-	m_pixelConstantBuffer.Reset();
+	m_constantBuffer.Reset();
 	m_vertexShader.Reset();
 	m_pixelShader.Reset();
 	m_vertexLayout.Reset();
