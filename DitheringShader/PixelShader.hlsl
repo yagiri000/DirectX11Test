@@ -34,23 +34,22 @@ static const float g_dither[16] = {
 	5.0 / 16.0,
 };
 
-static const float width = 800;
-static const float height = 600;
+static const float Width = 800;
+static const float Height = 600;
+static const float PixelSizeArc = 0.5;
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
 	float4 pos = mul(float4(input.Normal, 1.0), g_mWVP);
 	pos.x = pos.x / pos.w;
 	pos.y = pos.y / pos.w;
-	uint ix = ((pos.x + 1.0) * 0.5) * width * 0.25;
-	uint iy = ((pos.y + 1.0) * 0.5) * height * 0.25;
+	uint ix = ((pos.x + 1.0) * 0.5) * Width * PixelSizeArc;
+	uint iy = ((pos.y + 1.0) * 0.5) * Height * PixelSizeArc;
 	//ix = ix % 4;
 	//iy = iy % 4;
 	ix = ix & 3;
 	iy = iy & 3;
-	if (g_Alpha.x < g_dither[ix + 4 * iy]) {
-		discard;
-	}
+	clip(g_dither[ix + 4 * iy] - g_Alpha.x);
 	float4 color = float4(1.0, 0.5, 0.0, 1.0);
 	return color;
 }
