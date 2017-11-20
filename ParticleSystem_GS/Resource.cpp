@@ -5,9 +5,11 @@
 #include <string>
 #include "Utility.h"
 #include "Resource.h"
+#include "Binfile.h"
 
 constexpr int Resource::DefaultWindowWidth;
 constexpr int Resource::DefaultWindowHeight;
+constexpr int Resource::ParticleMax;
 
 // TODO : 外部から直接m_xxxxにアクセスしている部分はおかしい
 
@@ -291,11 +293,25 @@ void Resource::OnCreateResources()
 			return DX::ThrowIfFailed(hr);
 		}
 	}
+
+	ins.m_particleArray.resize(ParticleMax);
+	// Create Structured Buffers
+	CreateStructuredBuffer< ParticlePoint >(
+		ins.m_device.Get(), 
+		ParticleMax, 
+		ins.m_particles.GetAddressOf(), 
+		ins.m_particlesSRV.GetAddressOf(), 
+		ins.m_particlesUAV.GetAddressOf(), 
+		&ins.m_particleArray[0]);
 }
 
 void Resource::OnDeviceLost()
 {
 	auto& ins = Get();
+	ins.pTexture.Reset();
+	ins.pShaderResView.Reset();
+	ins.pSampler.Reset();
+	ins.m_constantBuffer.Reset();
 	ins.m_vertexShader.Reset();
 	ins.m_geometoryShader.Reset();
 	ins.m_pixelShader.Reset();

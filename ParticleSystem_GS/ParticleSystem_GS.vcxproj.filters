@@ -19,6 +19,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="MyVertexTypes.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="Binfile.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -32,6 +33,7 @@
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Resource.cpp" />
+    <ClCompile Include="Binfile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

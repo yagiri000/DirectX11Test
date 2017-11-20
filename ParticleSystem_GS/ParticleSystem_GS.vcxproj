@@ -155,6 +155,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Binfile.h" />
     <ClInclude Include="Easing.h" />
     <ClInclude Include="Font.h" />
     <ClInclude Include="Game.h" />
@@ -169,6 +170,7 @@
     <ClInclude Include="MyVertexTypes.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Binfile.cpp" />
     <ClCompile Include="Easing.cpp" />
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="Game.cpp" />

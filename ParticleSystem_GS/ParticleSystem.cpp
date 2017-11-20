@@ -23,6 +23,7 @@ ParticleSystem::~ParticleSystem()
 
 void ParticleSystem::Update(float deltaTime)
 {
+	auto& res = Resource::Get();
 	time += deltaTime;
 
 	{
@@ -49,34 +50,33 @@ void ParticleSystem::Update(float deltaTime)
 
 	// プロジェクショントランスフォーム（射影変換）
 	int width = Resource::DefaultWindowWidth;
-	int height = Resource::DefaultWindowWidth;
+	int height = Resource::DefaultWindowHeight;
 	proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
 	m_ViewProj = view * proj;
 
 	for (int i = 0; i < m_num; i++) {
 		Vector3 pos = Vector3::Transform(Positions[i], Matrix::CreateRotationY(time * 0.5f));
-		m_particleArray[i].Pos = pos;
+		res.m_particleArray[i].Pos = pos;
 	}
 }
 
 void ParticleSystem::Render()
 {
-	// 
-	// ---------Rendering-------------
-	//
+	auto& res = Resource::Get();
+
 	{
 		// コンスタントバッファーに各種データを渡す
 		D3D11_MAPPED_SUBRESOURCE pData;
 		SIMPLESHADER_CONSTANT_BUFFER cb;
-		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+		if (SUCCEEDED(res.m_context->Map(res.m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
 			auto m = XMMatrixTranspose(m_ViewProj);
 			// TODO : ワールドは渡す意味が無いので消す
 			cb.mW = Matrix().Transpose();
 			cb.mWVP = m;
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
-			m_context->Unmap(m_constantBuffer.Get(), 0);
+			res.m_context->Unmap(res.m_constantBuffer.Get(), 0);
 		}
 	}
 
@@ -84,76 +84,62 @@ void ParticleSystem::Render()
 	{
 		// コンスタントバッファーに各種データを渡す
 		D3D11_MAPPED_SUBRESOURCE pData;
-		if (SUCCEEDED(m_context->Map(m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
+		if (SUCCEEDED(res.m_context->Map(res.m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
 
-			memcpy_s(pData.pData, pData.RowPitch, (void*)(m_particleArray), sizeof(ParticlePoint) * MAXNUM);
-			m_context->Unmap(m_particles.Get(), 0);
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&res.m_particleArray[0]), sizeof(ParticlePoint) * MAXNUM);
+			res.m_context->Unmap(res.m_particles.Get(), 0);
 		}
 	}
 
 
 	// Set primitive topology
-	m_context->RSSetState(m_rasterizerState.Get());
+	res.m_context->RSSetState(res.m_rasterizerState.Get());
 
 	UINT mask = 0xffffffff;
-	m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
+	res.m_context->OMSetBlendState(res.m_blendState.Get(), NULL, mask);
 
 	// 使用シェーダー登録
-	m_context->VSSetShader(m_vertexShader.Get(), NULL, 0);
-	m_context->GSSetShader(m_geometoryShader.Get(), NULL, 0);
-	m_context->PSSetShader(m_pixelShader.Get(), NULL, 0);
+	res.m_context->VSSetShader(res.m_vertexShader.Get(), NULL, 0);
+	res.m_context->GSSetShader(res.m_geometoryShader.Get(), NULL, 0);
+	res.m_context->PSSetShader(res.m_pixelShader.Get(), NULL, 0);
 
 	// サンプラー
 	UINT smp_slot = 0;
-	ID3D11SamplerState* smp[1] = { pSampler.Get() };
-	m_context->PSSetSamplers(smp_slot, 1, smp);
+	ID3D11SamplerState* smp[1] = { res.pSampler.Get() };
+	res.m_context->PSSetSamplers(smp_slot, 1, smp);
 
 	// シェーダーリソースビュー（テクスチャ）
 	UINT srv_slot = 0;
-	ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
-	m_context->PSSetShaderResources(srv_slot, 1, srv);
+	ID3D11ShaderResourceView* srv[1] = { res.pShaderResView.Get() };
+	res.m_context->PSSetShaderResources(srv_slot, 1, srv);
 
 	ID3D11ShaderResourceView* const     g_pNullSRV = NULL;       // Helper to Clear SRVs
 	ID3D11UnorderedAccessView* const    g_pNullUAV = NULL;       // Helper to Clear UAVs
 	ID3D11Buffer* const                 g_pNullBuffer = NULL;    // Helper to Clear Buffers
 	UINT                                g_iNullUINT = 0;         // Helper to Clear Buffers
 
-	m_context->VSSetShaderResources(0, 1, m_particlesSRV.GetAddressOf());
-	m_context->IASetVertexBuffers(0, 1, &g_pNullBuffer, &g_iNullUINT, &g_iNullUINT);
-	m_context->IASetIndexBuffer(g_pNullBuffer, DXGI_FORMAT_UNKNOWN, 0);
-	m_context->IASetInputLayout(nullptr);
-	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	res.m_context->VSSetShaderResources(0, 1, res.m_particlesSRV.GetAddressOf());
+	res.m_context->IASetVertexBuffers(0, 1, &g_pNullBuffer, &g_iNullUINT, &g_iNullUINT);
+	res.m_context->IASetIndexBuffer(g_pNullBuffer, DXGI_FORMAT_UNKNOWN, 0);
+	res.m_context->IASetInputLayout(nullptr);
+	res.m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-	m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
-	m_context->GSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
-	m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+	res.m_context->VSSetConstantBuffers(0, 1, res.m_constantBuffer.GetAddressOf());
+	res.m_context->GSSetConstantBuffers(0, 1, res.m_constantBuffer.GetAddressOf());
+	res.m_context->PSSetConstantBuffers(0, 1, res.m_constantBuffer.GetAddressOf());
 
-	m_context->Draw(m_num, 0);
+	res.m_context->Draw(m_num, 0);
 
-	m_context->GSSetShader(nullptr, NULL, 0);
+	res.m_context->GSSetShader(nullptr, NULL, 0);
 
 	// Unset the particles buffer
-	m_context->VSSetShaderResources(0, 1, &g_pNullSRV);
+	res.m_context->VSSetShaderResources(0, 1, &g_pNullSRV);
 }
 
 void ParticleSystem::OnInitialize()
 {
-
-	m_particleArray = new ParticlePoint[MAXNUM];
-	for (UINT i = 0; i < MAXNUM; i++) {
-		m_particleArray[i].Pos = Random::OnSphere();
-		m_particleArray[i].Normal = Random::OnSphere();
-	}
-
-	// Create Structured Buffers
-	CreateStructuredBuffer< ParticlePoint >(m_device.Get(), MAXNUM, m_particles.GetAddressOf(), m_particlesSRV.GetAddressOf(), m_particlesUAV.GetAddressOf(), m_particleArray);
 }
 
 void ParticleSystem::OnDeviceLost()
 {
-	pTexture.Reset();
-	pShaderResView.Reset();
-	pSampler.Reset();
-
-	m_constantBuffer.Reset();
 }

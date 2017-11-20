@@ -2,9 +2,12 @@
 #include "pch.h"
 #include "StepTimer.h"
 #include "MyVertexTypes.h"
+#include <vector>
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
+
+
 
 class Resource
 {
@@ -20,6 +23,7 @@ public:
 
 	static constexpr int DefaultWindowWidth = 1280;
 	static constexpr int DefaultWindowHeight = 720;
+	static constexpr int ParticleMax = 10000;
 
 	// Device resources.
 	HWND                                            m_window;
@@ -45,6 +49,55 @@ public:
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
 
+	ComPtr<ID3D11Buffer>			m_constantBuffer;
+	ComPtr<ID3D11Buffer>					m_particles;
+	ComPtr<ID3D11ShaderResourceView>		m_particlesSRV;
+	ComPtr<ID3D11UnorderedAccessView>		m_particlesUAV;
+
+	std::vector<ParticlePoint>		m_particleArray;
+
 	static Resource& Get();
 private:
 };
+
+//--------------------------------------------------------------------------------------
+// Helper for creating structured buffers with an SRV and UAV
+//--------------------------------------------------------------------------------------
+template <class T>
+HRESULT CreateStructuredBuffer(ID3D11Device* pd3dDevice, UINT iNumElements, ID3D11Buffer** ppBuffer, ID3D11ShaderResourceView** ppSRV, ID3D11UnorderedAccessView** ppUAV, const T* pInitialData = NULL)
+{
+	HRESULT hr = S_OK;
+
+	// Create SB
+	D3D11_BUFFER_DESC bufferDesc;
+	ZeroMemory(&bufferDesc, sizeof(bufferDesc));
+	bufferDesc.ByteWidth = iNumElements * sizeof(T);
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	bufferDesc.StructureByteStride = sizeof(T);
+
+	D3D11_SUBRESOURCE_DATA bufferInitData;
+	ZeroMemory(&bufferInitData, sizeof(bufferInitData));
+	bufferInitData.pSysMem = pInitialData;
+	pd3dDevice->CreateBuffer(&bufferDesc, (pInitialData) ? &bufferInitData : NULL, ppBuffer);
+
+	// Create SRV
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+	ZeroMemory(&srvDesc, sizeof(srvDesc));
+	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	srvDesc.Buffer.ElementWidth = iNumElements;
+	pd3dDevice->CreateShaderResourceView(*ppBuffer, &srvDesc, ppSRV);
+
+	// Create UAV
+	D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
+	ZeroMemory(&uavDesc, sizeof(uavDesc));
+	uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	uavDesc.Buffer.NumElements = iNumElements;
+	pd3dDevice->CreateUnorderedAccessView(*ppBuffer, &uavDesc, ppUAV);
+
+	return hr;
+}

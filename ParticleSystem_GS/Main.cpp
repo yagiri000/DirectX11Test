@@ -4,6 +4,7 @@
 
 #include "pch.h"
 #include "Game.h"
+#include "Resource.h"
 
 using namespace DirectX;
 
@@ -223,8 +224,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
                 SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
 
-                int width = 800;
-                int height = 600;
+                int width = Resource::DefaultWindowWidth;
+                int height = Resource::DefaultWindowHeight;
                 if (game)
                     game->GetDefaultSize(width, height);
 

@@ -23,7 +23,7 @@
     <ProjectGuid>{1e5a70b7-66f3-493a-9893-a0b0dd5d8416}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
-    <ProjectName>InstancingBillboard</ProjectName>
+    <ProjectName>Billboard_Instancing</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

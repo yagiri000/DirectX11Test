@@ -21,29 +21,7 @@ using Microsoft::WRL::ComPtr;
 
 
 
-struct BinFile
-{
-	BinFile(const wchar_t* fpath)
-	{
-		std::ifstream binfile(fpath, std::ios::in | std::ios::binary);
 
-		if (binfile.is_open()) {
-			int fsize = static_cast<int>(binfile.seekg(0, std::ios::end).tellg());
-			binfile.seekg(0, std::ios::beg);
-			std::unique_ptr<char> code(new char[fsize]);
-			binfile.read(code.get(), fsize);
-			nSize = fsize;
-			Bin = std::move(code);
-		}
-
-	}
-
-	const void* get() const { return Bin.get(); }
-	int size() const { return nSize; }
-private:
-	int nSize = 0;
-	std::unique_ptr<char> Bin;
-};
 
 Game::Game()
 {
@@ -81,8 +59,6 @@ void Game::Update(DX::StepTimer const& timer)
 {
 	float deltaTime = float(timer.GetElapsedSeconds());
 
-	static bool pre = false;
-
 	m_particleSystem->Update(deltaTime);
 }
 
@@ -97,7 +73,6 @@ void Game::Render()
 	Clear();
 
 	m_particleSystem->Render();
-
 
 	Font::DrawQueue(L"FPS : " + std::to_wstring(m_timer.GetFramesPerSecond()), Vector2(20.0f, 20.0f));
 	Font::DrawQueue(L"NUM : " + std::to_wstring(999), Vector2(20.0f, 50.0f));
@@ -198,7 +173,7 @@ void Game::CreateDevice()
 void Game::CreateResources()
 {
 	auto& res = Resource::Get();
-	Resource::OnCreateDevice();
+	Resource::OnCreateResources();
 
 	Font::Initialize(res.m_device.Get(), res.m_context.Get(), L"myfile.spritefont");
 
