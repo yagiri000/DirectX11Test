@@ -294,7 +294,10 @@ void Resource::OnCreateResources()
 		}
 	}
 
-	ins.m_particleArray.resize(ParticleMax);
+	// Structured Buffers作成のためのダミーの配列
+	static std::vector<ParticlePoint> particleArray;
+	particleArray.resize(ParticleMax);
+	
 	// Create Structured Buffers
 	CreateStructuredBuffer< ParticlePoint >(
 		ins.m_device.Get(), 
@@ -302,7 +305,7 @@ void Resource::OnCreateResources()
 		ins.m_particles.GetAddressOf(), 
 		ins.m_particlesSRV.GetAddressOf(), 
 		ins.m_particlesUAV.GetAddressOf(), 
-		&ins.m_particleArray[0]);
+		&particleArray[0]);
 }
 
 void Resource::OnDeviceLost()

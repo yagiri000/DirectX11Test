@@ -23,7 +23,6 @@ public:
 
 	static constexpr int DefaultWindowWidth = 1280;
 	static constexpr int DefaultWindowHeight = 720;
-	static constexpr int ParticleMax = 10000;
 
 	// Device resources.
 	HWND                                            m_window;
@@ -49,12 +48,12 @@ public:
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
 
+	// パーティクル用リソース
+	static constexpr int ParticleMax = 10000;
 	ComPtr<ID3D11Buffer>			m_constantBuffer;
 	ComPtr<ID3D11Buffer>					m_particles;
 	ComPtr<ID3D11ShaderResourceView>		m_particlesSRV;
 	ComPtr<ID3D11UnorderedAccessView>		m_particlesUAV;
-
-	std::vector<ParticlePoint>		m_particleArray;
 
 	static Resource& Get();
 private:

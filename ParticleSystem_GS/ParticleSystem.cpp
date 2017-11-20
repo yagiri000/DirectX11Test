@@ -11,7 +11,8 @@ using namespace DirectX::SimpleMath;
 
 ParticleSystem::ParticleSystem()
 {
-	for (int i = 0; i < MAXNUM; i++) {
+	Positions.resize(m_maxNum);
+	for (int i = 0; i < m_maxNum; i++) {
 		Positions[i] = Random::OnSphere();
 	}
 }
@@ -27,7 +28,7 @@ void ParticleSystem::Update(float deltaTime)
 	time += deltaTime;
 
 	{
-		constexpr int PlusNum = 1000;
+		int PlusNum = m_maxNum / 30;
 		if (GetKeyState('D') & 0x80) {
 			m_num += PlusNum;
 		}
@@ -35,7 +36,7 @@ void ParticleSystem::Update(float deltaTime)
 			m_num -= PlusNum;
 		}
 
-		m_num = Utility::Clamp(m_num, 0, MAXNUM);
+		m_num = Utility::Clamp(m_num, 0, m_maxNum);
 	}
 
 	// s—ñŒvŽZ
@@ -57,7 +58,7 @@ void ParticleSystem::Update(float deltaTime)
 
 	for (int i = 0; i < m_num; i++) {
 		Vector3 pos = Vector3::Transform(Positions[i], Matrix::CreateRotationY(time * 0.5f));
-		res.m_particleArray[i].Pos = pos;
+		m_particleArray[i].Pos = pos;
 	}
 }
 
@@ -86,7 +87,7 @@ void ParticleSystem::Render()
 		D3D11_MAPPED_SUBRESOURCE pData;
 		if (SUCCEEDED(res.m_context->Map(res.m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
 
-			memcpy_s(pData.pData, pData.RowPitch, (void*)(&res.m_particleArray[0]), sizeof(ParticlePoint) * MAXNUM);
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&m_particleArray[0]), sizeof(ParticlePoint) * m_maxNum);
 			res.m_context->Unmap(res.m_particles.Get(), 0);
 		}
 	}
@@ -138,6 +139,7 @@ void ParticleSystem::Render()
 
 void ParticleSystem::OnInitialize()
 {
+	m_particleArray.resize(m_maxNum);
 }
 
 void ParticleSystem::OnDeviceLost()

@@ -32,7 +32,6 @@ void Game::Initialize(HWND window, int width, int height)
 {
 	Resource::OnInitialize(window, width, height);
 	CreateDevice();
-
 	CreateResources();
 
 
@@ -178,6 +177,7 @@ void Game::CreateResources()
 	Font::Initialize(res.m_device.Get(), res.m_context.Get(), L"myfile.spritefont");
 
 	m_particleSystem = std::make_unique<ParticleSystem>();
+	m_particleSystem->OnInitialize();
 }
 
 void Game::OnDeviceLost()
