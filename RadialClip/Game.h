@@ -34,7 +34,9 @@ struct SIMPLESHADER_PIXEL_CONSTANT_BUFFER
 	XMVECTOR mAngleStart_Dif;
 };
 
-// 平面が原点を常に見るようにするテスト
+
+// uv空間の(0.5, 0.5)を中心とし，一定の角度領域のみを描画する
+// 円形のゲージUI用
 class Game
 {
 public:

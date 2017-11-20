@@ -16,7 +16,8 @@ using Microsoft::WRL::ComPtr;
 
 struct ParticleVertex
 {
-	DirectX::XMFLOAT3 Pos;
+	DirectX::XMFLOAT3 Start;
+	DirectX::XMFLOAT3 End;
 	DirectX::XMFLOAT3 Tangent;
 };
 
@@ -134,7 +135,7 @@ private:
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
 
-	static const UINT MAXNUM = 30;
+	static const UINT MAXNUM = 10;
 	UINT m_num = MAXNUM;
 
     // Rendering loop timer.

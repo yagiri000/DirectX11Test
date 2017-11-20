@@ -186,10 +186,11 @@ void Game::Render()
 		for (int i = 0; i < m_num; i++) {
 			static const float RotationSpeed = 2.0f;
 			auto trans = Matrix::CreateRotationY(time * RotationSpeed) * Matrix::CreateRotationZ(RotateZ);
-			Vector3 pos = Vector3::Transform(Positions[i], trans);
-			Vector3 next = Vector3::Transform(Positions[i+1], trans);
-			auto mView = Matrix::CreateLookAt(pos, next, cameraDir);
-			m_particleArray[i].Pos = pos;
+			Vector3 start = Vector3::Transform(Positions[i] * 0.5f, trans);
+			Vector3 end = Vector3::Transform(Positions[i] * 3.5f, trans);
+			auto mView = Matrix::CreateLookAt(start, end, cameraDir);
+			m_particleArray[i].Start = start;
+			m_particleArray[i].End = end;
 			m_particleArray[i].Tangent = Vector3(mView._11, mView._21, mView._31);
 		}
 		// コンスタントバッファーに各種データを渡す
@@ -244,7 +245,7 @@ void Game::Render()
 	m_context->GSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 	m_context->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 
-	m_context->Draw(m_num-2, 0);
+	m_context->Draw(m_num, 0);
 
 	m_context->GSSetShader(nullptr, NULL, 0);
 
@@ -604,9 +605,6 @@ void Game::CreateResources()
 	}
 
 	m_particleArray = new ParticleVertex[MAXNUM];
-	for (UINT i = 0; i < MAXNUM; i++) {
-		m_particleArray[i].Pos = Random::OnSphere();
-	}
 
 	// Create Structured Buffers
 	CreateStructuredBuffer< ParticleVertex >(m_device.Get(), MAXNUM, m_particles.GetAddressOf(), m_particlesSRV.GetAddressOf(), m_particlesUAV.GetAddressOf(), m_particleArray);
