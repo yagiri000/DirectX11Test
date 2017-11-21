@@ -2,6 +2,10 @@
 #include "MinMaxCurve.h"
 #include "Utility.h"
 
+
+constexpr size_t MinMaxCurve::CASH_NUM;
+constexpr size_t MinMaxCurveRotation::CASH_NUM;
+
 // FIXME : Clampä÷êîÇÇ±Ç±Ç≈égÇ§Ç©
 
 MinMaxCurve::MinMaxCurve() :
@@ -9,6 +13,7 @@ MinMaxCurve::MinMaxCurve() :
 	m_end(0.0f),
 	m_easing(Easing::Linear)
 {
+	CalcCash();
 }
 
 MinMaxCurve::MinMaxCurve(float start, float end) :
@@ -16,6 +21,7 @@ MinMaxCurve::MinMaxCurve(float start, float end) :
 	m_end(end),
 	m_easing(Easing::Linear)
 {
+	CalcCash();
 }
 
 
@@ -24,13 +30,22 @@ MinMaxCurve::MinMaxCurve(float start, float end, const std::function<float(float
 	m_end(end),
 	m_easing(easing)
 {
+	CalcCash();
 }
 
 
 float MinMaxCurve::Get(float rate) const
 {
-	rate = Utility::Clamp(rate, 0.0f, 1.0f);
-	return m_easing(m_start, m_end, rate);
+	size_t n = Utility::Clamp((size_t)(rate * CASH_NUM), (size_t)0, (size_t)CASH_NUM-1);
+	return m_cash[n];
+	//return m_easing(m_start, m_end, rate);
+}
+
+void MinMaxCurve::CalcCash()
+{
+	for (int i = 0; i < CASH_NUM; i++) {
+		m_cash[i] = m_easing(m_start, m_end, (float)i / (float)CASH_NUM);
+	}
 }
 
 
@@ -39,6 +54,7 @@ MinMaxCurveRotation::MinMaxCurveRotation() :
 	m_end(),
 	m_easing(Easing::Linear)
 {
+	CalcCash();
 }
 
 MinMaxCurveRotation::MinMaxCurveRotation(const Quaternion & rot) :
@@ -46,6 +62,7 @@ MinMaxCurveRotation::MinMaxCurveRotation(const Quaternion & rot) :
 	m_end(rot),
 	m_easing(Easing::Linear)
 {
+	CalcCash();
 }
 
 MinMaxCurveRotation::MinMaxCurveRotation(const Quaternion & start, const Quaternion & end):
@@ -53,6 +70,7 @@ MinMaxCurveRotation::MinMaxCurveRotation(const Quaternion & start, const Quatern
 	m_end(end),
 	m_easing(Easing::Linear)
 {
+	CalcCash();
 }
 
 MinMaxCurveRotation::MinMaxCurveRotation(const Quaternion & start, const Quaternion & end, const std::function<float(float, float, float)>& easing):
@@ -60,12 +78,22 @@ MinMaxCurveRotation::MinMaxCurveRotation(const Quaternion & start, const Quatern
 	m_end(end),
 	m_easing(easing)
 {
+	CalcCash();
 }
 
 Quaternion MinMaxCurveRotation::Get(float rate) const
 {
-	rate = Utility::Clamp(rate, 0.0f, 1.0f);
-	return Quaternion::Slerp(m_start, m_end, m_easing(0.0f, 1.0f, rate));
+	size_t n = Utility::Clamp((size_t)(rate * CASH_NUM), (size_t)0, (size_t)CASH_NUM - 1);
+	return m_cash[n];
+	//rate = Utility::Clamp(rate, 0.0f, 1.0f);
+	//return Quaternion::Slerp(m_start, m_end, m_easing(0.0f, 1.0f, rate));
+}
+
+void MinMaxCurveRotation::CalcCash()
+{
+	for (int i = 0; i < CASH_NUM; i++) {
+		m_cash[i] = Quaternion::Slerp(m_start, m_end, m_easing(0.0f, 1.0f, (float)i / CASH_NUM));
+	}
 }
 
 

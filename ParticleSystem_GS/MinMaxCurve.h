@@ -12,6 +12,8 @@ using namespace DirectX::SimpleMath;
 class MinMaxCurve
 {
 public:
+	static constexpr size_t CASH_NUM = 1024; //キャッシュの解像度
+	float m_cash[CASH_NUM];
 	float m_start;
 	float m_end;
 	std::function<float(float, float, float)> m_easing;
@@ -20,12 +22,15 @@ public:
 	MinMaxCurve(float min, float max);
 	MinMaxCurve(float min, float max, const std::function<float(float, float, float)>& easing);
 	float Get(float rate) const;
+	void CalcCash();
 };
 
 
 class MinMaxCurveRotation
 {
 public:
+	static constexpr size_t CASH_NUM = 1024; //キャッシュの解像度
+	Quaternion m_cash[CASH_NUM];
 	Quaternion m_start;
 	Quaternion m_end;
 	std::function<float(float, float, float)> m_easing;
@@ -35,6 +40,7 @@ public:
 	MinMaxCurveRotation(const Quaternion& min, const Quaternion& max);
 	MinMaxCurveRotation(const Quaternion& min, const Quaternion& max, const std::function<float(float, float, float)>& easing);
 	Quaternion Get(float rate) const;
+	void CalcCash();
 };
 
 
