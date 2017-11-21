@@ -17,14 +17,14 @@ using Microsoft::WRL::ComPtr;
 struct ParticleVertex
 {
 	DirectX::XMFLOAT3 Pos;
-	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT3 Velocity;
 };
 
 //Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
 struct SIMPLESHADER_CONSTANT_BUFFER
 {
 	XMMATRIX mW;
-	XMMATRIX mWVP;//ワールド、ビュー、射影の合成変換行列
+	XMMATRIX mVP;//ワールド、ビュー、射影の合成変換行列
 };
 
 //--------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ HRESULT CreateStructuredBuffer(ID3D11Device* pd3dDevice, UINT iNumElements, ID3D
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	bufferDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
 	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
 	bufferDesc.StructureByteStride = sizeof(T);
 
 	D3D11_SUBRESOURCE_DATA bufferInitData;
@@ -119,11 +119,13 @@ private:
 	ComPtr<ID3D11RasterizerState>	m_rasterizerStateWireFrame;
 	ComPtr<ID3D11BlendState>		m_blendState;
 
+	ComPtr<ID3D11ComputeShader>		m_computeShader;
 	ComPtr<ID3D11VertexShader>		m_vertexShader;
-	ComPtr<ID3D11GeometryShader>		m_geometoryShader;
-	ComPtr<ID3D11PixelShader>	m_pixelShader;
+	ComPtr<ID3D11GeometryShader>	m_geometoryShader;
+	ComPtr<ID3D11PixelShader>		m_pixelShader;
 
 	ComPtr<ID3D11Buffer>			m_constantBuffer;
+
 
 	ParticleVertex*								m_particleArray;
 	ComPtr<ID3D11Buffer>                       m_particles;
@@ -134,7 +136,7 @@ private:
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
 
-	static const UINT MAXNUM = 10000;
+	static const UINT MAXNUM = 9999;
 	UINT m_num = MAXNUM;
 
     // Rendering loop timer.

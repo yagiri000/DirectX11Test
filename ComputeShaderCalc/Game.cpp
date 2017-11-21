@@ -103,6 +103,9 @@ void Game::Render()
 		return;
 	}
 
+	static float elapsedTime = 0.0f;
+	elapsedTime += 1.0 / 60.0f;
+
 	static Vector3 Positions[MAXNUM]; // それぞれのスプライトの位置
 	static bool IsFirstFrame = true;
 	static float RotateY = 0;
@@ -120,28 +123,95 @@ void Game::Render()
 	Font::DrawQueue(L"FPS : " + std::to_wstring(m_timer.GetFramesPerSecond()), Vector2(20.0f, 20.0f));
 	Font::DrawQueue(L"NUM : " + std::to_wstring(m_num), Vector2(20.0f, 50.0f));
 
-
+	static Vector3 eyePos(0.0f, 0.5f, 1.5f);
 
 	float time = (float)m_timer.GetTotalSeconds();
 
 	{
-		constexpr int PlusNum = 1000;
+		constexpr float Speed = 0.5f / 60.0f;
+		if (GetKeyState('W') & 0x80) {
+			eyePos.z -= Speed;
+		}
+		if (GetKeyState('S') & 0x80) {
+			eyePos.z += Speed;
+		}
+		if (GetKeyState('A') & 0x80) {
+			eyePos.x -= Speed;
+		}
 		if (GetKeyState('D') & 0x80) {
+			eyePos.x += Speed;
+		}
+	}
+
+	{
+		constexpr int PlusNum = MAXNUM / 60;
+		if (GetKeyState('Q') & 0x80) {
 			m_num += PlusNum;
 		}
-		if (GetKeyState('A') & 0x80 && m_num > PlusNum) {
+		if (GetKeyState('E') & 0x80 && m_num > PlusNum) {
 			m_num -= PlusNum;
 		}
 
 		m_num = Utility::Clamp(m_num, 0, MAXNUM);
 	}
 
+
+	if (GetKeyState('Z') & 0x80) {
+		for (int i = 0; i < m_num; i++) {
+			//m_particleArray[i].Pos = Vector3::Zero;
+			m_particleArray[i].Pos = Random::OnSphere() * Random::Range(0.0f, 1.0f);
+			float angle = (float)i / m_num * XM_2PI * 1.0f;
+			auto vel = Vector2(cos(angle), sin(angle));
+			m_particleArray[i].Velocity = Vector3(vel.x, vel.y, 0.5f) * 0.003f;
+			m_particleArray[i].Velocity = Vector3::Zero;
+		}
+		m_particleArray[MAXNUM - 1].Pos = Vector3(0.0f, 0.0f, 0.0f);
+		// コンスタントバッファーに各種データを渡す
+		D3D11_MAPPED_SUBRESOURCE pData;
+		if (SUCCEEDED(m_context->Map(m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(m_particleArray), sizeof(ParticleVertex) * MAXNUM);
+			m_context->Unmap(m_particles.Get(), 0);
+		}
+	}
+
+	if (GetKeyState('X') & 0x80) {
+		for (int i = 0; i < m_num; i++) {
+			//m_particleArray[i].Pos = Vector3::Zero;
+			float angle = (float)i / m_num * XM_2PI * 1.0f;
+			auto vel = Vector2(cos(angle), sin(angle));
+			m_particleArray[i].Pos = Vector3(cos(angle), -sin(angle), 1.0f) * 0.3f;
+			m_particleArray[i].Velocity = Vector3::Zero;
+		}
+		m_particleArray[MAXNUM - 1].Pos = Vector3(0.0f, 0.0f, 0.0f);
+		// コンスタントバッファーに各種データを渡す
+		D3D11_MAPPED_SUBRESOURCE pData;
+		if (SUCCEEDED(m_context->Map(m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(m_particleArray), sizeof(ParticleVertex) * MAXNUM);
+			m_context->Unmap(m_particles.Get(), 0);
+		}
+	}
+
+	if (GetKeyState('C') & 0x80) {
+		// コンスタントバッファーに各種データを渡す
+		D3D11_MAPPED_SUBRESOURCE pData;
+		if (SUCCEEDED(m_context->Map(m_particles.Get(), 0, D3D11_MAP_READ_WRITE, 0, &pData))) {
+			m_particleArray = (ParticleVertex*)pData.pData;
+			for (int i = MAXNUM * 0.4f; i < MAXNUM * 0.6f; i++) {
+				m_particleArray[i].Velocity = Random::OnSphere() * 0.2f;
+			}
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(m_particleArray), sizeof(ParticleVertex) * MAXNUM);
+			m_context->Unmap(m_particles.Get(), 0);
+		}
+	}
+
+
 	// 行列計算
 	Matrix mView;
 	Matrix mProj;
 
 	// ビュートランスフォーム（視点座標変換）
-	Vector3 eye(0.0f, 1.0f, 3.0f); //カメラ（視点）位置
+	Vector3 eye = eyePos; //カメラ（視点）位置
+	eye = Vector3::Transform(eye, Matrix::CreateRotationY(elapsedTime * 1.0f));
 	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
 	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
 	mView = Matrix::CreateLookAt(eye, lookat, up);
@@ -157,10 +227,8 @@ void Game::Render()
 		SIMPLESHADER_CONSTANT_BUFFER cb;
 		if (SUCCEEDED(m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
 			//ワールド、カメラ、射影行列を渡す
-			XMMATRIX m = mView * mProj;
-			m = XMMatrixTranspose(m);
-			cb.mW = Matrix().Transpose();
-			cb.mWVP = m;
+			cb.mW = mView.Invert().Transpose();
+			cb.mVP = (mView * mProj).Transpose();
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
 			m_context->Unmap(m_constantBuffer.Get(), 0);
@@ -168,18 +236,27 @@ void Game::Render()
 	}
 
 
-	{
-		for (int i = 0; i < m_num; i++) {
-			Vector3 pos = Vector3::Transform(Positions[i], Matrix::CreateRotationY(time * 0.5f));
-			m_particleArray[i].Pos = pos;
-		}
-		// コンスタントバッファーに各種データを渡す
-		D3D11_MAPPED_SUBRESOURCE pData;
-		if (SUCCEEDED(m_context->Map(m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
+	// 
+	// ---------GPU Calculate-------------
+	//
 
-			memcpy_s(pData.pData, pData.RowPitch, (void*)(m_particleArray), sizeof(ParticleVertex) * MAXNUM);
-			m_context->Unmap(m_particles.Get(), 0);
-		}
+	m_context->CSSetShader(m_computeShader.Get(), nullptr, 0);
+	m_context->CSSetUnorderedAccessViews(0, 1, m_particlesUAV.GetAddressOf(), nullptr);
+
+	m_context->Dispatch(MAXNUM, 1, 1);
+
+	// 登録解除
+	{
+		m_context->CSSetShader(nullptr, nullptr, 0);
+
+		ID3D11UnorderedAccessView* ppUAViewnullptr[1] = { nullptr };
+		m_context->CSSetUnorderedAccessViews(0, 1, ppUAViewnullptr, nullptr);
+
+		ID3D11ShaderResourceView* ppSRVnullptr[2] = { nullptr, nullptr };
+		m_context->CSSetShaderResources(0, 2, ppSRVnullptr);
+
+		ID3D11Buffer* ppCBnullptr[1] = { nullptr };
+		m_context->CSSetConstantBuffers(0, 1, ppCBnullptr);
 	}
 
 	// 
@@ -190,12 +267,12 @@ void Game::Render()
 	m_context->RSSetState(m_rasterizerState.Get());
 
 	UINT mask = 0xffffffff;
-	m_context->OMSetBlendState(m_blendState.Get(), NULL, mask);
+	m_context->OMSetBlendState(m_blendState.Get(), nullptr, mask);
 
 	// 使用シェーダー登録
-	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
-	m_context.Get()->GSSetShader(m_geometoryShader.Get(), NULL, 0);
-	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
+	m_context.Get()->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+	m_context.Get()->GSSetShader(m_geometoryShader.Get(), nullptr, 0);
+	m_context.Get()->PSSetShader(m_pixelShader.Get(), nullptr, 0);
 
 	// サンプラー
 	UINT smp_slot = 0;
@@ -207,9 +284,9 @@ void Game::Render()
 	ID3D11ShaderResourceView* srv[1] = { pShaderResView.Get() };
 	m_context->PSSetShaderResources(srv_slot, 1, srv);
 
-	ID3D11ShaderResourceView* const     g_pNullSRV = NULL;       // Helper to Clear SRVs
-	ID3D11UnorderedAccessView* const    g_pNullUAV = NULL;       // Helper to Clear UAVs
-	ID3D11Buffer* const                 g_pNullBuffer = NULL;    // Helper to Clear Buffers
+	ID3D11ShaderResourceView* const     g_pNullSRV = nullptr;       // Helper to Clear SRVs
+	ID3D11UnorderedAccessView* const    g_pNullUAV = nullptr;       // Helper to Clear UAVs
+	ID3D11Buffer* const                 g_pNullBuffer = nullptr;    // Helper to Clear Buffers
 	UINT                                g_iNullUINT = 0;         // Helper to Clear Buffers
 
 	m_context->VSSetShaderResources(0, 1, m_particlesSRV.GetAddressOf());
@@ -224,7 +301,7 @@ void Game::Render()
 
 	m_context->Draw(m_num, 0);
 
-	m_context->GSSetShader(nullptr, NULL, 0);
+	m_context->GSSetShader(nullptr, nullptr, 0);
 
 	// Unset the particles buffer
 	m_context->VSSetShaderResources(0, 1, &g_pNullSRV);
@@ -507,6 +584,7 @@ void Game::CreateResources()
 
 
 	//シェーダー読み込み
+	BinFile cscode(L"..\\Debug\\ComputeShader.cso");
 	BinFile vscode(L"..\\Debug\\VertexShader.cso");
 	BinFile gscode(L"..\\Debug\\GeometryShader.cso");
 	BinFile pscode(L"..\\Debug\\PixelShader.cso");
@@ -514,19 +592,24 @@ void Game::CreateResources()
 	// 頂点シェーダ作成
 	//  メモ：シェーダーをデバッグ情報ありでコンパイルすると
 	//　　　　ここでエラー発生　CREATEVERTEXSHADER_INVALIDSHADERBYTECODE
-	hr = m_device.Get()->CreateVertexShader(vscode.get(), vscode.size(), NULL, m_vertexShader.GetAddressOf());
+	hr = m_device.Get()->CreateComputeShader(cscode.get(), cscode.size(), nullptr, m_computeShader.GetAddressOf());
+	if (FAILED(hr)) {
+		return DX::ThrowIfFailed(hr);
+	}
+
+	hr = m_device.Get()->CreateVertexShader(vscode.get(), vscode.size(), nullptr, m_vertexShader.GetAddressOf());
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
 
 	//
-	hr = m_device.Get()->CreateGeometryShader(gscode.get(), gscode.size(), NULL, m_geometoryShader.GetAddressOf());
+	hr = m_device.Get()->CreateGeometryShader(gscode.get(), gscode.size(), nullptr, m_geometoryShader.GetAddressOf());
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
 
 	// ピクセルシェーダ作成
-	hr = m_device.Get()->CreatePixelShader(pscode.get(), pscode.size(), NULL, m_pixelShader.GetAddressOf());
+	hr = m_device.Get()->CreatePixelShader(pscode.get(), pscode.size(), nullptr, m_pixelShader.GetAddressOf());
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
@@ -566,7 +649,7 @@ void Game::CreateResources()
 	cb.Usage = D3D11_USAGE_DYNAMIC;
 
 	{
-		hr = m_device.Get()->CreateBuffer(&cb, NULL, m_constantBuffer.GetAddressOf());
+		hr = m_device.Get()->CreateBuffer(&cb, nullptr, m_constantBuffer.GetAddressOf());
 		if (FAILED(hr)) {
 			return DX::ThrowIfFailed(hr);
 		}
@@ -574,8 +657,9 @@ void Game::CreateResources()
 
 	m_particleArray = new ParticleVertex[MAXNUM];
 	for (UINT i = 0; i < MAXNUM; i++) {
-		m_particleArray[i].Pos = Random::OnSphere();
-		m_particleArray[i].Normal = Random::OnSphere();
+		m_particleArray[i].Pos = Vector3::Zero;
+		auto vel = Random::OnCircle(1.0);
+		m_particleArray[i].Velocity = Vector3(vel.x, 0.0f, vel.y) * 0.003f;
 	}
 
 	// Create Structured Buffers
@@ -595,6 +679,7 @@ void Game::OnDeviceLost()
 	pSampler.Reset();
 
 	m_constantBuffer.Reset();
+	m_computeShader.Reset();
 	m_vertexShader.Reset();
 	m_geometoryShader.Reset();
 	m_pixelShader.Reset();

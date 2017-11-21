@@ -16,7 +16,7 @@ StructuredBuffer<Particle> ParticlesRO : register(t0);
 struct GS_INPUT
 {
 	float4 Pos : SV_POSITION;
-	float3 Normal : TEXCOORD0;
+	float3 Normal : TEXCOORD0; // Ç†Ç∆Ç≈è¡Ç∑
 };
 
 GS_INPUT main(uint ID : SV_VertexID)

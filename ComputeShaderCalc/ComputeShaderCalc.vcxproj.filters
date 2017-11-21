@@ -45,5 +45,6 @@
     <FxCompile Include="GeometryShader.hlsl" />
     <FxCompile Include="PixelShader.hlsl" />
     <FxCompile Include="VertexShader.hlsl" />
+    <FxCompile Include="ComputeShader.hlsl" />
   </ItemGroup>
 </Project>
