@@ -5,11 +5,14 @@
 #include <string>
 #include "Utility.h"
 #include "Resource.h"
+#include "Input.h"
 
 using namespace DirectX::SimpleMath;
 
 
-ParticleSystem::ParticleSystem()
+ParticleSystem::ParticleSystem():
+	m_maxNum(9999),
+	m_num(1000)
 {
 	Positions.resize(m_maxNum);
 	for (int i = 0; i < m_maxNum; i++) {
@@ -27,16 +30,20 @@ void ParticleSystem::Update(float deltaTime)
 	auto& res = Resource::Get();
 	time += deltaTime;
 
-	{
-		int PlusNum = m_maxNum / 30;
-		if (GetKeyState('D') & 0x80) {
-			m_num += PlusNum;
+	if (Input::GetKeyDown(Keyboard::Z)) {
+		for (int i = 0; i < m_num; i++) {
+			auto& p = m_particleArray[i];
+			p.Pos = Vector3::Zero;
+			auto vel = Random::OnCircle(1.0f);
+			p.Velocity = Vector3(vel.x, 0.0f, vel.y) * Random::Range(0.02f, 0.02f);
+			p.Gravity = Vector3::Zero;
+			p.Scale = Vector3::One * 0.01;
+			p.Up = Vector3::Up;
+			p.Right = Vector3::Right;
+			p.Color = Vector4::One;
+			float life = Random::Range(1.5f, 2.5f) * 60.0f;
+			p.Life_LifeVel = Vector4(0.0f, 1.0 / life, 0.0f, 0.0f);
 		}
-		if (GetKeyState('A') & 0x80 && m_num > PlusNum) {
-			m_num -= PlusNum;
-		}
-
-		m_num = Utility::Clamp(m_num, 0, m_maxNum);
 	}
 
 	// 行列計算
@@ -57,8 +64,20 @@ void ParticleSystem::Update(float deltaTime)
 	m_ViewProj = view * proj;
 
 	for (int i = 0; i < m_num; i++) {
-		Vector3 pos = Vector3::Transform(Positions[i], Matrix::CreateRotationY(time * 0.5f));
-		m_particleArray[i].Pos = pos;
+		auto& p = m_particleArray[i];
+		if (p.Life_LifeVel.x > 1.0) {
+			continue;
+		}
+		p.Pos = Vector3(p.Pos) + Vector3(p.Velocity);
+		p.Velocity = Vector3(p.Velocity)
+			+ Vector3(sin(p.Pos.y * 25.0f), sin(p.Pos.z * 25.0f), sin(p.Pos.x * 25.0f)) * 0.0002f * pow(Vector3(p.Pos).Length(), 0.3);
+		p.Velocity = Vector3(p.Velocity) * 0.99f;
+		p.Velocity = Vector3(p.Velocity) +  Vector3(p.Gravity);
+		p.Scale = Vector3(m_scaleCurve->Get(p.Life_LifeVel.x));
+		p.Up = Vector3::Up;
+		p.Right = Vector3::Right;
+		p.Color = m_colorCurve->Get(p.Life_LifeVel.x);
+		p.Life_LifeVel.x += p.Life_LifeVel.y;
 	}
 }
 
@@ -72,10 +91,8 @@ void ParticleSystem::Render()
 		SIMPLESHADER_CONSTANT_BUFFER cb;
 		if (SUCCEEDED(res.m_context->Map(res.m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
 			auto m = XMMatrixTranspose(m_ViewProj);
-			// TODO : ワールドは渡す意味が無いので消す
 			cb.mW = Matrix().Transpose();
 			cb.mWVP = m;
-
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
 			res.m_context->Unmap(res.m_constantBuffer.Get(), 0);
 		}
@@ -83,10 +100,9 @@ void ParticleSystem::Render()
 
 
 	{
-		// コンスタントバッファーに各種データを渡す
+		// StructuredBufferにパーティクルデータを受け渡し
 		D3D11_MAPPED_SUBRESOURCE pData;
 		if (SUCCEEDED(res.m_context->Map(res.m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
-
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(&m_particleArray[0]), sizeof(ParticlePoint) * m_maxNum);
 			res.m_context->Unmap(res.m_particles.Get(), 0);
 		}
@@ -140,6 +156,32 @@ void ParticleSystem::Render()
 void ParticleSystem::OnInitialize()
 {
 	m_particleArray.resize(m_maxNum);
+
+	for (int i = 0; i < m_maxNum; i++) {
+		m_particleArray[i].Pos = Vector3::Zero;
+		m_particleArray[i].Velocity = Random::OnSphere();
+		m_particleArray[i].Gravity = Vector3::Zero;
+		m_particleArray[i].Scale = Vector3::One;
+		m_particleArray[i].Up = Vector3::Up;
+		m_particleArray[i].Right = Vector3::Right;
+		m_particleArray[i].Color = Vector4::One; 
+		m_particleArray[i].Life_LifeVel = Vector4(0.0f, 0.01f, 0.0f, 0.0f); 
+	}
+	m_scaleCurve = std::make_unique<MinMaxCurve4>(
+		MinMaxCurve(0.05f, 0.00f),
+		MinMaxCurve(0.05f, 0.00f),
+		MinMaxCurve(0.05f, 0.00f),
+		MinMaxCurve(0.05f, 0.00f)
+		);
+	m_rotationCurve = std::make_unique<MinMaxCurveRotation>(
+		Quaternion()
+	);
+	m_colorCurve = std::make_unique<MinMaxCurve4>(
+		MinMaxCurve(Random::Value(), 1.0f),
+		MinMaxCurve(Random::Range(0.2f, 0.0f), 0.0f),
+		MinMaxCurve(Random::Range(0.5f, 0.0f), 0.0f),
+		MinMaxCurve(1.0f, 1.0f)
+		);
 }
 
 void ParticleSystem::OnDeviceLost()

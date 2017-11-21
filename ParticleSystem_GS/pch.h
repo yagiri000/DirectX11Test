@@ -50,6 +50,8 @@
 #include "SpriteBatch.h"
 #include "WICTextureLoader.h"
 #include "SimpleMath.h"
+#include "Keyboard.h"
+#include "Mouse.h"
 
 namespace DX
 {

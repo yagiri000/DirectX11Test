@@ -12,6 +12,7 @@
 #include "Random.h"
 #include "Font.h"
 #include "Resource.h"
+#include "Input.h"
 
 extern void ExitGame();
 
@@ -58,6 +59,8 @@ void Game::Update(DX::StepTimer const& timer)
 {
 	float deltaTime = float(timer.GetElapsedSeconds());
 
+	Input::Update();
+
 	m_particleSystem->Update(deltaTime);
 }
 
@@ -74,7 +77,7 @@ void Game::Render()
 	m_particleSystem->Render();
 
 	Font::DrawQueue(L"FPS : " + std::to_wstring(m_timer.GetFramesPerSecond()), Vector2(20.0f, 20.0f));
-	Font::DrawQueue(L"NUM : " + std::to_wstring(999), Vector2(20.0f, 50.0f));
+	Font::DrawQueue(L"NUM : " + std::to_wstring(m_particleSystem->m_num), Vector2(20.0f, 50.0f));
 	Font::Batch();
 
 	Present();
@@ -160,10 +163,12 @@ void Game::GetDefaultSize(int& width, int& height) const
 // These are the resources that depend on the device.
 void Game::CreateDevice()
 {
+	auto& res = Resource::Get();
 	Resource::OnCreateDevice();
 
 	// TODO: Initialize device dependent objects here (independent of window size).
 
+	Input::Initialize(res.m_window);
 
 
 }

@@ -20,6 +20,8 @@
     <ClInclude Include="MyVertexTypes.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Binfile.h" />
+    <ClInclude Include="MinMaxCurve.h" />
+    <ClInclude Include="Input.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -34,6 +36,8 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Resource.cpp" />
     <ClCompile Include="Binfile.cpp" />
+    <ClCompile Include="MinMaxCurve.cpp" />
+    <ClCompile Include="Input.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

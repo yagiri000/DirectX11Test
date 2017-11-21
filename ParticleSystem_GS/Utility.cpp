@@ -2,6 +2,8 @@
 #include "Utility.h"
 #include <DirectXMath.h>
 
+// TODO : Clamp‚Ì•Ï”‚ğ(_2, _0, _1)‚Ì‡”Ô‚É•ÏX
+
 namespace Utility
 {
 
