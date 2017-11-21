@@ -108,7 +108,6 @@ void Game::Render()
 
 	static Vector3 Positions[MAXNUM]; // それぞれのスプライトの位置
 	static bool IsFirstFrame = true;
-	static float RotateY = 0;
 
 	// 初めのフレームでそれぞれのスプライトの位置を初期化する
 	if (IsFirstFrame) {
@@ -156,16 +155,12 @@ void Game::Render()
 	}
 
 
+	// 全てのパーティクルの座標を0，速度をrandomにする
 	if (GetKeyState('Z') & 0x80) {
 		for (int i = 0; i < m_num; i++) {
-			//m_particleArray[i].Pos = Vector3::Zero;
-			m_particleArray[i].Pos = Random::OnSphere() * Random::Range(0.0f, 1.0f);
-			float angle = (float)i / m_num * XM_2PI * 1.0f;
-			auto vel = Vector2(cos(angle), sin(angle));
-			m_particleArray[i].Velocity = Vector3(vel.x, vel.y, 0.5f) * 0.003f;
-			m_particleArray[i].Velocity = Vector3::Zero;
+			m_particleArray[i].Pos = Vector3::Zero;
+			m_particleArray[i].Velocity = Random::OnSphere() * Random::Range(0.000f, 0.005f);
 		}
-		m_particleArray[MAXNUM - 1].Pos = Vector3(0.0f, 0.0f, 0.0f);
 		// コンスタントバッファーに各種データを渡す
 		D3D11_MAPPED_SUBRESOURCE pData;
 		if (SUCCEEDED(m_context->Map(m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
@@ -174,30 +169,14 @@ void Game::Render()
 		}
 	}
 
+	// パーティクルの速度を0にする
 	if (GetKeyState('X') & 0x80) {
-		for (int i = 0; i < m_num; i++) {
-			//m_particleArray[i].Pos = Vector3::Zero;
-			float angle = (float)i / m_num * XM_2PI * 1.0f;
-			auto vel = Vector2(cos(angle), sin(angle));
-			m_particleArray[i].Pos = Vector3(cos(angle), -sin(angle), 1.0f) * 0.3f;
-			m_particleArray[i].Velocity = Vector3::Zero;
-		}
-		m_particleArray[MAXNUM - 1].Pos = Vector3(0.0f, 0.0f, 0.0f);
-		// コンスタントバッファーに各種データを渡す
-		D3D11_MAPPED_SUBRESOURCE pData;
-		if (SUCCEEDED(m_context->Map(m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
-			memcpy_s(pData.pData, pData.RowPitch, (void*)(m_particleArray), sizeof(ParticleVertex) * MAXNUM);
-			m_context->Unmap(m_particles.Get(), 0);
-		}
-	}
-
-	if (GetKeyState('C') & 0x80) {
 		// コンスタントバッファーに各種データを渡す
 		D3D11_MAPPED_SUBRESOURCE pData;
 		if (SUCCEEDED(m_context->Map(m_particles.Get(), 0, D3D11_MAP_READ_WRITE, 0, &pData))) {
 			m_particleArray = (ParticleVertex*)pData.pData;
-			for (int i = MAXNUM * 0.4f; i < MAXNUM * 0.6f; i++) {
-				m_particleArray[i].Velocity = Random::OnSphere() * 0.2f;
+			for (int i = 0; i < MAXNUM; i++) {
+				m_particleArray[i].Velocity = Vector3::Zero;
 			}
 			memcpy_s(pData.pData, pData.RowPitch, (void*)(m_particleArray), sizeof(ParticleVertex) * MAXNUM);
 			m_context->Unmap(m_particles.Get(), 0);
@@ -211,7 +190,6 @@ void Game::Render()
 
 	// ビュートランスフォーム（視点座標変換）
 	Vector3 eye = eyePos; //カメラ（視点）位置
-	eye = Vector3::Transform(eye, Matrix::CreateRotationY(elapsedTime * 1.0f));
 	Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
 	Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
 	mView = Matrix::CreateLookAt(eye, lookat, up);
@@ -656,10 +634,9 @@ void Game::CreateResources()
 	}
 
 	m_particleArray = new ParticleVertex[MAXNUM];
-	for (UINT i = 0; i < MAXNUM; i++) {
+	for (size_t i = 0; i < m_num; i++) {
 		m_particleArray[i].Pos = Vector3::Zero;
-		auto vel = Random::OnCircle(1.0);
-		m_particleArray[i].Velocity = Vector3(vel.x, 0.0f, vel.y) * 0.003f;
+		m_particleArray[i].Velocity = Random::OnSphere() * Random::Range(0.000f, 0.005f);
 	}
 
 	// Create Structured Buffers
