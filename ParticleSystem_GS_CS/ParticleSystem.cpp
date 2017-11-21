@@ -12,7 +12,7 @@ using namespace DirectX::SimpleMath;
 
 ParticleSystem::ParticleSystem():
 	m_maxNum(9999),
-	m_num(2000)
+	m_num(9999)
 {
 	Positions.resize(m_maxNum);
 	for (int i = 0; i < m_maxNum; i++) {
@@ -34,6 +34,29 @@ void ParticleSystem::Update(float deltaTime)
 		for (int i = 0; i < m_num; i++) {
 			auto& p = m_particleArray[i];
 			p.Pos = Vector3::Zero;
+			p.Velocity = Random::OnSphere() * 0.01f;
+			p.Gravity = Vector3::Zero;
+			p.Scale = Vector3::One * 0.01;
+			p.Up = Vector3::Up;
+			p.Right = Vector3::Right;
+			p.Color = Vector4::One;
+			float life = Random::Range(1.5f, 1.5f) * 60.0f;
+			p.Life_LifeVel = Vector4(0.0f, 1.0 / life, 0.0f, 0.0f);
+		}
+		// StructuredBufferにパーティクルデータを受け渡し
+		{
+			D3D11_MAPPED_SUBRESOURCE pData;
+			if (SUCCEEDED(res.m_context->Map(res.m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
+				memcpy_s(pData.pData, pData.RowPitch, (void*)(&m_particleArray[0]), sizeof(ParticlePoint) * m_maxNum);
+				res.m_context->Unmap(res.m_particles.Get(), 0);
+			}
+		}
+	}
+
+	if (Input::GetKeyDown(Keyboard::X)) {
+		for (int i = 0; i < m_num; i++) {
+			auto& p = m_particleArray[i];
+			p.Pos = Random::OnSphere();
 			auto vel = Random::OnCircle(1.0f);
 			p.Velocity = Vector3(vel.x, 0.0f, vel.y) * Random::Range(0.02f, 0.02f);
 			p.Gravity = Vector3::Zero;
@@ -43,6 +66,14 @@ void ParticleSystem::Update(float deltaTime)
 			p.Color = Vector4::One;
 			float life = Random::Range(3.5f, 3.5f) * 60.0f;
 			p.Life_LifeVel = Vector4(0.0f, 1.0 / life, 0.0f, 0.0f);
+		}
+		// StructuredBufferにパーティクルデータを受け渡し
+		{
+			D3D11_MAPPED_SUBRESOURCE pData;
+			if (SUCCEEDED(res.m_context->Map(res.m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
+				memcpy_s(pData.pData, pData.RowPitch, (void*)(&m_particleArray[0]), sizeof(ParticlePoint) * m_maxNum);
+				res.m_context->Unmap(res.m_particles.Get(), 0);
+			}
 		}
 	}
 
@@ -75,21 +106,25 @@ void ParticleSystem::Update(float deltaTime)
 
 	m_ViewProj = view * proj;
 
-	for (int i = 0; i < m_num; i++) {
-		auto& p = m_particleArray[i];
-		if (p.Life_LifeVel.x > 1.0) {
-			continue;
-		}
-		p.Pos = Vector3(p.Pos) + Vector3(p.Velocity);
-		p.Velocity = Vector3(p.Velocity)
-			+ Vector3(sin(p.Pos.y * 25.0f), sin(p.Pos.z * 25.0f), sin(p.Pos.x * 25.0f)) * 0.0002f * pow(Vector3(p.Pos).Length(), 0.3);
-		p.Velocity = Vector3(p.Velocity) * 0.99f;
-		p.Velocity = Vector3(p.Velocity) +  Vector3(p.Gravity);
-		p.Scale = Vector3(m_scaleCurve->Get(p.Life_LifeVel.x));
-		p.Up = Vector3::Up;
-		p.Right = Vector3::Right;
-		p.Color = m_colorCurve->Get(p.Life_LifeVel.x);
-		p.Life_LifeVel.x += p.Life_LifeVel.y;
+
+	// パーティクル更新
+
+	res.m_context->CSSetShader(res.m_computeShader.Get(), nullptr, 0);
+	res.m_context->CSSetUnorderedAccessViews(0, 1, res.m_particlesUAV.GetAddressOf(), nullptr);
+	res.m_context->Dispatch(m_num, 1, 1);
+
+	// 登録解除
+	{
+		res.m_context->CSSetShader(nullptr, nullptr, 0);
+
+		ID3D11UnorderedAccessView* ppUAViewnullptr[1] = { nullptr };
+		res.m_context->CSSetUnorderedAccessViews(0, 1, ppUAViewnullptr, nullptr);
+
+		ID3D11ShaderResourceView* ppSRVnullptr[2] = { nullptr, nullptr };
+		res.m_context->CSSetShaderResources(0, 2, ppSRVnullptr);
+
+		ID3D11Buffer* ppCBnullptr[1] = { nullptr };
+		res.m_context->CSSetConstantBuffers(0, 1, ppCBnullptr);
 	}
 }
 
@@ -111,14 +146,7 @@ void ParticleSystem::Render()
 	}
 
 
-	{
-		// StructuredBufferにパーティクルデータを受け渡し
-		D3D11_MAPPED_SUBRESOURCE pData;
-		if (SUCCEEDED(res.m_context->Map(res.m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
-			memcpy_s(pData.pData, pData.RowPitch, (void*)(&m_particleArray[0]), sizeof(ParticlePoint) * m_maxNum);
-			res.m_context->Unmap(res.m_particles.Get(), 0);
-		}
-	}
+	
 
 
 	// Set primitive topology
@@ -167,13 +195,14 @@ void ParticleSystem::Render()
 
 void ParticleSystem::OnInitialize()
 {
+	auto& res = Resource::Get();
 	m_particleArray.resize(m_maxNum);
 
 	for (int i = 0; i < m_maxNum; i++) {
-		m_particleArray[i].Pos = Vector3::Zero;
-		m_particleArray[i].Velocity = Random::OnSphere();
+		m_particleArray[i].Pos = Random::OnSphere();
+		m_particleArray[i].Velocity = Vector3::Zero;
 		m_particleArray[i].Gravity = Vector3::Zero;
-		m_particleArray[i].Scale = Vector3::One;
+		m_particleArray[i].Scale = Vector3::One * 0.01f;
 		m_particleArray[i].Up = Vector3::Up;
 		m_particleArray[i].Right = Vector3::Right;
 		m_particleArray[i].Color = Vector4::One; 
@@ -194,6 +223,15 @@ void ParticleSystem::OnInitialize()
 		MinMaxCurve(Random::Range(0.5f, 0.0f), 0.0f),
 		MinMaxCurve(1.0f, 1.0f)
 		);
+
+	// StructuredBufferにパーティクルデータを受け渡し
+	{
+		D3D11_MAPPED_SUBRESOURCE pData;
+		if (SUCCEEDED(res.m_context->Map(res.m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&m_particleArray[0]), sizeof(ParticlePoint) * m_maxNum);
+			res.m_context->Unmap(res.m_particles.Get(), 0);
+		}
+	}
 }
 
 void ParticleSystem::OnDeviceLost()

@@ -77,6 +77,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ComputeShaderCalc", "Comput
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ComputeShaderCalc2", "ComputeShaderCalc2\ComputeShaderCalc2.vcxproj", "{BC9A89E9-6ADC-4EF4-A974-3841D1BA26AF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ParticleSystem_GS_CS", "ParticleSystem_GS_CS\ParticleSystem_GS_CS.vcxproj", "{823D3865-6419-41FE-B18B-6C44E2501DDC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -381,6 +383,14 @@ Global
 		{BC9A89E9-6ADC-4EF4-A974-3841D1BA26AF}.Release|x64.Build.0 = Release|x64
 		{BC9A89E9-6ADC-4EF4-A974-3841D1BA26AF}.Release|x86.ActiveCfg = Release|Win32
 		{BC9A89E9-6ADC-4EF4-A974-3841D1BA26AF}.Release|x86.Build.0 = Release|Win32
+		{823D3865-6419-41FE-B18B-6C44E2501DDC}.Debug|x64.ActiveCfg = Debug|x64
+		{823D3865-6419-41FE-B18B-6C44E2501DDC}.Debug|x64.Build.0 = Debug|x64
+		{823D3865-6419-41FE-B18B-6C44E2501DDC}.Debug|x86.ActiveCfg = Debug|Win32
+		{823D3865-6419-41FE-B18B-6C44E2501DDC}.Debug|x86.Build.0 = Debug|Win32
+		{823D3865-6419-41FE-B18B-6C44E2501DDC}.Release|x64.ActiveCfg = Release|x64
+		{823D3865-6419-41FE-B18B-6C44E2501DDC}.Release|x64.Build.0 = Release|x64
+		{823D3865-6419-41FE-B18B-6C44E2501DDC}.Release|x86.ActiveCfg = Release|Win32
+		{823D3865-6419-41FE-B18B-6C44E2501DDC}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
