@@ -160,7 +160,6 @@
     <ClInclude Include="Font.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Input.h" />
-    <ClInclude Include="Material.h" />
     <ClInclude Include="MinMaxCurve.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="pch.h" />
@@ -178,7 +177,6 @@
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Material.cpp" />
     <ClCompile Include="MinMaxCurve.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="pch.cpp">

@@ -12,7 +12,7 @@ using namespace DirectX::SimpleMath;
 
 ParticleSystem::ParticleSystem():
 	m_maxNum(9999),
-	m_num(1000)
+	m_num(9999)
 {
 	Positions.resize(m_maxNum);
 	for (int i = 0; i < m_maxNum; i++) {
@@ -41,9 +41,21 @@ void ParticleSystem::Update(float deltaTime)
 			p.Up = Vector3::Up;
 			p.Right = Vector3::Right;
 			p.Color = Vector4::One;
-			float life = Random::Range(1.5f, 2.5f) * 60.0f;
+			float life = Random::Range(3.5f, 3.5f) * 60.0f;
 			p.Life_LifeVel = Vector4(0.0f, 1.0 / life, 0.0f, 0.0f);
 		}
+	}
+
+	{
+		static UINT PlusNum = m_maxNum / 60;
+		if (Input::GetKey(Keyboard::A) && m_num > PlusNum) {
+			m_num -= PlusNum;
+		}
+		if (Input::GetKey(Keyboard::D)) {
+			m_num += PlusNum;
+		}
+
+		m_num = Utility::Clamp(0u, m_maxNum, m_num);
 	}
 
 	// çsóÒåvéZ

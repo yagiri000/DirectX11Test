@@ -2,7 +2,7 @@
 cbuffer global
 {
 	matrix g_mW;
-	matrix g_mWVP; //ワールド、ビュー、射影の合成変換行列
+	matrix g_mVP; //ワールド、ビュー、射影の合成変換行列
 };
 
 struct Particle

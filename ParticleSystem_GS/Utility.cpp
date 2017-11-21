@@ -20,16 +20,6 @@ namespace Utility
 		return CameraTransform;
 	}
 
-	float Clamp(float value, float min, float max)
-	{
-		return std::min(std::max(value, min), max);
-	}
-
-	unsigned int Clamp(unsigned int value, unsigned int min, unsigned int max)
-	{
-		return std::min(std::max(value, min), max);
-	}
-
 	// TODO : ê≥ÇµÇ¢Ç©åüèÿ
 	Quaternion LookRotation(const Vector3 & dir)
 	{
@@ -42,4 +32,5 @@ namespace Utility
 
 
 	std::function<void(const Transform& trans)> DrawPlane;
+
 }

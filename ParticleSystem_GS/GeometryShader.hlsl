@@ -2,7 +2,7 @@
 cbuffer global
 {
 	matrix g_mW;
-	matrix g_mWVP; //ワールド、ビュー、射影の合成変換行列
+	matrix g_mVP; //ワールド、ビュー、射影の合成変換行列
 };
 
 
@@ -41,7 +41,7 @@ void main(point GS_INPUT In[1], inout TriangleStream<PS_INPUT> SpriteStream)
 
 			float4 pos = In[0].Pos + float4(localPos, 1);
 			pos.w = 1;
-			Out.Pos = mul(pos, g_mWVP);
+			Out.Pos = mul(pos, g_mVP);
 			Out.Color = In[0].Color;
 			Out.Tex = g_texcoords[i];
 			SpriteStream.Append(Out);

@@ -169,8 +169,6 @@ void Game::CreateDevice()
 	// TODO: Initialize device dependent objects here (independent of window size).
 
 	Input::Initialize(res.m_window);
-
-
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

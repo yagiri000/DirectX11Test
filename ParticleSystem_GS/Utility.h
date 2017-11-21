@@ -13,10 +13,14 @@ namespace Utility {
 	void SetCameraTransform(const Transform& t);
 	Transform GetCameraTransform();
 
-	// ’l‚ðmin‚Æmax‚ÌŠÔ‚É‚µ‚Ä•Ô‚·
-	float Clamp(float value, float min, float max);
-
 	extern std::function<void(const Transform& trans)> DrawPlane;
 
 	Quaternion LookRotation(const Vector3& dir);
+
+
+	template<class T>
+	T Clamp(T min, T max, T value)
+	{
+		return std::min(std::max(value, min), max);
+	}
 }

@@ -5,6 +5,9 @@
       <UniqueIdentifier>b4b1efea-0c65-4dfc-a2cb-73f0600b30bf</UniqueIdentifier>
       <Extensions>ico;cur;bmp;dds;dlg;fbx;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{c8e487c1-fa34-4be4-80b5-ac68dad7a344}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -16,7 +19,6 @@
     <ClInclude Include="Transform.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="ParticleSystem.h" />
-    <ClInclude Include="Material.h" />
     <ClInclude Include="MyVertexTypes.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Binfile.h" />
@@ -33,7 +35,6 @@
     <ClCompile Include="Transform.cpp" />
     <ClCompile Include="Utility.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
-    <ClCompile Include="Material.cpp" />
     <ClCompile Include="Resource.cpp" />
     <ClCompile Include="Binfile.cpp" />
     <ClCompile Include="MinMaxCurve.cpp" />
@@ -56,8 +57,14 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="GeometryShader.hlsl" />
-    <FxCompile Include="PixelShader.hlsl" />
-    <FxCompile Include="VertexShader.hlsl" />
+    <FxCompile Include="GeometryShader.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="PixelShader.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="VertexShader.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

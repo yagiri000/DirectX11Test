@@ -36,7 +36,7 @@ MinMaxCurve::MinMaxCurve(float start, float end, const std::function<float(float
 
 float MinMaxCurve::Get(float rate) const
 {
-	size_t n = Utility::Clamp((size_t)(rate * CASH_NUM), (size_t)0, (size_t)CASH_NUM-1);
+	size_t n = Utility::Clamp((size_t)CASH_NUM - 1, (size_t)(rate * CASH_NUM), (size_t)0);
 	return m_cash[n];
 	//return m_easing(m_start, m_end, rate);
 }
@@ -83,7 +83,7 @@ MinMaxCurveRotation::MinMaxCurveRotation(const Quaternion & start, const Quatern
 
 Quaternion MinMaxCurveRotation::Get(float rate) const
 {
-	size_t n = Utility::Clamp((size_t)(rate * CASH_NUM), (size_t)0, (size_t)CASH_NUM - 1);
+	size_t n = Utility::Clamp((size_t)0, (size_t)CASH_NUM - 1, (size_t)(rate * CASH_NUM));
 	return m_cash[n];
 	//rate = Utility::Clamp(rate, 0.0f, 1.0f);
 	//return Quaternion::Slerp(m_start, m_end, m_easing(0.0f, 1.0f, rate));
@@ -112,7 +112,7 @@ MinMaxCurve4::MinMaxCurve4(const MinMaxCurve & c0, const MinMaxCurve & c1, const
 
 Vector4 MinMaxCurve4::Get(float rate) const
 {
-	rate = Utility::Clamp(rate, 0.0f, 1.0f);
+	rate = Utility::Clamp(0.0f, 1.0f, rate);
 	return Vector4(
 		m_c0.Get(rate),
 		m_c1.Get(rate),
