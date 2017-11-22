@@ -39,6 +39,7 @@
     <ClCompile Include="Binfile.cpp" />
     <ClCompile Include="Easing.cpp" />
     <ClCompile Include="Font.cpp" />
+    <ClCompile Include="MyVertexTypes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

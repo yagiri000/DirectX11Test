@@ -11,7 +11,7 @@ using namespace DirectX::SimpleMath;
 
 
 ParticleSystem::ParticleSystem():
-	m_maxNum(9999),
+	m_maxNum(Resource::ParticleMax),
 	m_num(m_maxNum)
 {
 	Positions.resize(m_maxNum);
@@ -34,13 +34,14 @@ void ParticleSystem::Update(float deltaTime)
 		for (int i = 0; i < m_num; i++) {
 			auto& p = m_particleArray[i];
 			p.Pos = Vector3::Zero;
-			p.Velocity = Random::OnSphere() * 0.001f;
-			p.Gravity = Vector3::Zero;
+			p.Velocity = Random::OnSphere() * 0.01f;
+			//p.Gravity = Random::OnSphere() * 0.0001f;
+			p.Gravity = Random::OnSphere() * 0.0f;
 			p.Scale = Vector3::One * 0.01;
 			p.Up = Vector3::Up;
 			p.Right = Vector3::Right;
 			p.Color = Vector4::One;
-			float life = 10.0f * 60.0f;
+			float life = Random::Range(0.0f, 6.0f) * 60.0f;
 			p.Life_LifeVel = Vector4(0.0f, 1.0 / life, 0.0f, 0.0f);
 		}
 		// StructuredBufferにパーティクルデータを受け渡し
@@ -56,7 +57,7 @@ void ParticleSystem::Update(float deltaTime)
 	if (Input::GetKeyDown(Keyboard::X)) {
 		for (int i = 0; i < m_num; i++) {
 			auto& p = m_particleArray[i];
-			p.Pos = Random::OnSphere();
+			p.Pos = Random::OnSphere() * 0.2f;
 			auto vel = Random::OnCircle(1.0f);
 			p.Velocity = Vector3(vel.x, 0.0f, vel.y) * Random::Range(0.02f, 0.02f);
 			p.Gravity = Vector3::Zero;
@@ -64,7 +65,30 @@ void ParticleSystem::Update(float deltaTime)
 			p.Up = Vector3::Up;
 			p.Right = Vector3::Right;
 			p.Color = Vector4::One;
-			float life = Random::Range(3.5f, 3.5f) * 60.0f;
+			float life = Random::Range(0.0f, 3.5f) * 60.0f;
+			p.Life_LifeVel = Vector4(0.0f, 1.0 / life, 0.0f, 0.0f);
+		}
+		// StructuredBufferにパーティクルデータを受け渡し
+		{
+			D3D11_MAPPED_SUBRESOURCE pData;
+			if (SUCCEEDED(res.m_context->Map(res.m_particles.Get(), 0, D3D11_MAP_WRITE, 0, &pData))) {
+				memcpy_s(pData.pData, pData.RowPitch, (void*)(&m_particleArray[0]), sizeof(ParticlePoint) * m_maxNum);
+				res.m_context->Unmap(res.m_particles.Get(), 0);
+			}
+		}
+	}
+
+	if (Input::GetKeyDown(Keyboard::C)) {
+		for (int i = 0; i < m_num; i++) {
+			auto& p = m_particleArray[i];
+			p.Pos = Random::OnSphere();
+			p.Velocity = Vector3::Zero;
+			p.Gravity = Vector3::Zero;
+			p.Scale = Vector3::One * 0.01;
+			p.Up = Vector3::Up;
+			p.Right = Vector3::Right;
+			p.Color = Vector4::One;
+			float life = Random::Range(0.0f, 10.0f) * 60.0f;
 			p.Life_LifeVel = Vector4(0.0f, 1.0 / life, 0.0f, 0.0f);
 		}
 		// StructuredBufferにパーティクルデータを受け渡し
@@ -109,9 +133,10 @@ void ParticleSystem::Update(float deltaTime)
 
 	// パーティクル更新
 
+	res.m_context->CSSetConstantBuffers(0, 1, res.m_paramaterCash.GetAddressOf());
 	res.m_context->CSSetShader(res.m_computeShader.Get(), nullptr, 0);
 	res.m_context->CSSetUnorderedAccessViews(0, 1, res.m_particlesUAV.GetAddressOf(), nullptr);
-	res.m_context->Dispatch(9999, 1, 1);
+	res.m_context->Dispatch(m_num, 1, 1);
 
 	// 登録解除
 	{
@@ -218,11 +243,27 @@ void ParticleSystem::OnInitialize()
 		Quaternion()
 	);
 	m_colorCurve = std::make_unique<MinMaxCurve4>(
-		MinMaxCurve(Random::Value(), 1.0f),
-		MinMaxCurve(Random::Range(0.2f, 0.0f), 0.0f),
-		MinMaxCurve(Random::Range(0.5f, 0.0f), 0.0f),
+		MinMaxCurve(1.0f, 0.0f),
+		MinMaxCurve(0.01f, 0.0f),
+		MinMaxCurve(0.0f, 1.0f),
 		MinMaxCurve(1.0f, 1.0f)
 		);
+
+
+	{
+		// コンスタントバッファーに各種データを渡す
+		D3D11_MAPPED_SUBRESOURCE pData;
+		ParticleParamaterCash cb;
+		if (SUCCEEDED(res.m_context->Map(res.m_paramaterCash.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &pData))) {
+			auto num = ParticleParamaterCash::CashNum;
+			for (size_t i = 0; i < num; i++) {
+				cb.Color[i] = m_colorCurve->Get((float)i / num);
+				cb.Scale[i] = m_scaleCurve->Get((float)i / num);
+			}
+			memcpy_s(pData.pData, pData.RowPitch, (void*)(&cb), sizeof(cb));
+			res.m_context->Unmap(res.m_paramaterCash.Get(), 0);
+		}
+	}
 
 	// StructuredBufferにパーティクルデータを受け渡し
 	{

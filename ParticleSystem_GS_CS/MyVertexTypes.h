@@ -20,6 +20,15 @@ namespace DirectX
 		DirectX::XMFLOAT4 Life_LifeVel; //xに正規化された生存時間，yに1.0 / 生存時間 毎フレームxにyを加算
 	};
 
+	struct ParticleParamaterCash
+	{
+		static constexpr size_t CashNum = 1024;
+		DirectX::XMFLOAT4 Scale[CashNum];
+		DirectX::XMFLOAT4 Up[CashNum];
+		DirectX::XMFLOAT4 Right[CashNum];
+		DirectX::XMFLOAT4 Color[CashNum];
+	};
+
 	//Simpleシェーダー用のコンスタントバッファーのアプリ側構造体 もちろんシェーダー内のコンスタントバッファーと一致している必要あり
 	struct SIMPLESHADER_CONSTANT_BUFFER
 	{

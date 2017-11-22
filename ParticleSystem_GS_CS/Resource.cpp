@@ -284,16 +284,31 @@ void Resource::OnCreateResources()
 	// コンスタントバッファー作成　シェーダーに変換行列を渡す用
 
 	//コンスタントバッファー作成　ここでは変換行列渡し用
-	D3D11_BUFFER_DESC cb;
-	cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cb.ByteWidth = sizeof(SIMPLESHADER_CONSTANT_BUFFER);
-	cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cb.MiscFlags = 0;
-	cb.StructureByteStride = 0;
-	cb.Usage = D3D11_USAGE_DYNAMIC;
+	{
+		D3D11_BUFFER_DESC cb;
+		cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cb.ByteWidth = sizeof(SIMPLESHADER_CONSTANT_BUFFER);
+		cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cb.MiscFlags = 0;
+		cb.StructureByteStride = 0;
+		cb.Usage = D3D11_USAGE_DYNAMIC;
+
+		hr = ins.m_device.Get()->CreateBuffer(&cb, NULL, ins.m_constantBuffer.GetAddressOf());
+		if (FAILED(hr)) {
+			return DX::ThrowIfFailed(hr);
+		}
+	}
 
 	{
-		hr = ins.m_device.Get()->CreateBuffer(&cb, NULL, ins.m_constantBuffer.GetAddressOf());
+		D3D11_BUFFER_DESC cb;
+		cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cb.ByteWidth = sizeof(ParticleParamaterCash);
+		cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cb.MiscFlags = 0;
+		cb.StructureByteStride = 0;
+		cb.Usage = D3D11_USAGE_DYNAMIC;
+
+		hr = ins.m_device.Get()->CreateBuffer(&cb, NULL, ins.m_paramaterCash.GetAddressOf());
 		if (FAILED(hr)) {
 			return DX::ThrowIfFailed(hr);
 		}
@@ -302,14 +317,14 @@ void Resource::OnCreateResources()
 	// Structured Buffers作成のためのダミーの配列
 	static std::vector<ParticlePoint> particleArray;
 	particleArray.resize(ParticleMax);
-	
+
 	// Create Structured Buffers
 	CreateStructuredBuffer< ParticlePoint >(
-		ins.m_device.Get(), 
-		ParticleMax, 
-		ins.m_particles.GetAddressOf(), 
-		ins.m_particlesSRV.GetAddressOf(), 
-		ins.m_particlesUAV.GetAddressOf(), 
+		ins.m_device.Get(),
+		ParticleMax,
+		ins.m_particles.GetAddressOf(),
+		ins.m_particlesSRV.GetAddressOf(),
+		ins.m_particlesUAV.GetAddressOf(),
 		&particleArray[0]);
 }
 
@@ -320,6 +335,7 @@ void Resource::OnDeviceLost()
 	ins.pShaderResView.Reset();
 	ins.pSampler.Reset();
 	ins.m_constantBuffer.Reset();
+	ins.m_paramaterCash.Reset();
 
 	ins.m_computeShader.Reset();
 	ins.m_vertexShader.Reset();
