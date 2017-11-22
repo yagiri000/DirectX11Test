@@ -50,11 +50,13 @@ public:
 	ComPtr<ID3D11Resource> pTexture;
 
 	// パーティクル用リソース
-	static constexpr int ParticleMax = 10000;
+	static constexpr int ParticleMax = 9999;
 	ComPtr<ID3D11Buffer>			m_constantBuffer;
 	ComPtr<ID3D11Buffer>					m_particles;
 	ComPtr<ID3D11ShaderResourceView>		m_particlesSRV;
 	ComPtr<ID3D11UnorderedAccessView>		m_particlesUAV;
+
+	ComPtr<ID3D11Buffer>			m_paramaterCash;
 
 	static Resource& Get();
 private:

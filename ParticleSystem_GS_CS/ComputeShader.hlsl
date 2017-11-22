@@ -15,7 +15,8 @@ RWStructuredBuffer<Particle> BufferOut : register(u0);
 [numthreads(1, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
-	BufferOut[DTid.x].Pos += BufferOut[DTid.x].Velocity;
-	BufferOut[DTid.x].Velocity += BufferOut[DTid.x].Gravity;
-	BufferOut[DTid.x].Life_LifeVel.x += BufferOut[DTid.x].Life_LifeVel.y;
+	uint num = DTid.x;
+	BufferOut[num].Pos += BufferOut[num].Velocity;
+	BufferOut[num].Velocity += BufferOut[num].Gravity;
+	BufferOut[num].Life_LifeVel.x += BufferOut[num].Life_LifeVel.y;
 }

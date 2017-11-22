@@ -12,7 +12,7 @@ using namespace DirectX::SimpleMath;
 
 ParticleSystem::ParticleSystem():
 	m_maxNum(9999),
-	m_num(9999)
+	m_num(m_maxNum)
 {
 	Positions.resize(m_maxNum);
 	for (int i = 0; i < m_maxNum; i++) {
@@ -34,13 +34,13 @@ void ParticleSystem::Update(float deltaTime)
 		for (int i = 0; i < m_num; i++) {
 			auto& p = m_particleArray[i];
 			p.Pos = Vector3::Zero;
-			p.Velocity = Random::OnSphere() * 0.01f;
+			p.Velocity = Random::OnSphere() * 0.001f;
 			p.Gravity = Vector3::Zero;
 			p.Scale = Vector3::One * 0.01;
 			p.Up = Vector3::Up;
 			p.Right = Vector3::Right;
 			p.Color = Vector4::One;
-			float life = Random::Range(1.5f, 1.5f) * 60.0f;
+			float life = 10.0f * 60.0f;
 			p.Life_LifeVel = Vector4(0.0f, 1.0 / life, 0.0f, 0.0f);
 		}
 		// StructuredBufferにパーティクルデータを受け渡し
@@ -111,7 +111,7 @@ void ParticleSystem::Update(float deltaTime)
 
 	res.m_context->CSSetShader(res.m_computeShader.Get(), nullptr, 0);
 	res.m_context->CSSetUnorderedAccessViews(0, 1, res.m_particlesUAV.GetAddressOf(), nullptr);
-	res.m_context->Dispatch(m_num, 1, 1);
+	res.m_context->Dispatch(9999, 1, 1);
 
 	// 登録解除
 	{
