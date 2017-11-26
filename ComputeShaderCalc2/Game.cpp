@@ -243,7 +243,7 @@ void Game::Render()
 	m_context->CSSetShader(m_computeShader.Get(), nullptr, 0);
 	m_context->CSSetUnorderedAccessViews(0, 1, m_particlesUAV.GetAddressOf(), nullptr);
 
-	m_context->Dispatch(MAXNUM-1, 1, 1);
+	m_context->Dispatch(1, 64, 64);
 
 	// “o˜^‰ğœ
 	{

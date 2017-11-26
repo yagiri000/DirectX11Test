@@ -19,6 +19,7 @@ struct PS_INPUT
 
 float4 main(PS_INPUT input) : SV_Target
 {
+	//float4 color = input.Color;
 	float4 color = txDiffuse.Sample(samLinear, input.Tex) * input.Color;
 	return color;
 }

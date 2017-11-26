@@ -8,6 +8,7 @@ cbuffer global
 struct GS_INPUT
 {
 	float4 Pos : SV_POSITION;
+	float4 Color : COLOR;
 };
 
 struct PS_INPUT
@@ -26,11 +27,11 @@ void main(point GS_INPUT In[1], inout TriangleStream<PS_INPUT> SpriteStream)
 	[unroll]
 	for (int i = 0; i < 4; i++) {
 		PS_INPUT Out = (PS_INPUT)0;
-		float4 Pos = 0.004 * float4(g_positions[i], 0, 0);
+		float4 Pos = 0.006 * float4(g_positions[i], 0, 0);
 		Pos = mul(Pos, g_mW);
 		Pos += In[0].Pos;
 		Out.Pos = mul(Pos, g_mVP);
-		Out.Color = float4(1.0, 0.0, 0.0, 0.75);
+		Out.Color = In[0].Color;
 		Out.Tex = g_texcoords[i];
 		SpriteStream.Append(Out);
 	}

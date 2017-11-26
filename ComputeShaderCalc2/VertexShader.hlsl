@@ -16,11 +16,13 @@ StructuredBuffer<Particle> ParticlesRO : register(t0);
 struct GS_INPUT
 {
 	float4 Pos : SV_POSITION;
+	float4 Color : COLOR;
 };
 
 GS_INPUT main(uint ID : SV_VertexID)
 {
 	GS_INPUT output = (GS_INPUT)0;
 	output.Pos = float4(ParticlesRO[ID].Pos, 1);
+	output.Color = float4(1.0, 0.01, 0.01, 0.8);
 	return output;
 }

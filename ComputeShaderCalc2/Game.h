@@ -136,7 +136,7 @@ private:
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
 
-	static const UINT MAXNUM = 9999;
+	static const UINT MAXNUM = 1*64*64;
 	UINT m_num = MAXNUM;
 
     // Rendering loop timer.
