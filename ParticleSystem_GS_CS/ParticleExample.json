@@ -1,0 +1,47 @@
+{
+    "Duration": 5.0,
+    "Prewarm": true,
+    "StartDelay": 0.0,
+    "Lifetime": [1.0, 2.0],
+    "StartSpeed": [1.0, 2.0],
+    "StartSize": [[1.0, 1.0, 1.0], [2.0, 2.0, 2.0]],
+    "StartRotation": [[0.0, 0.0, 0.0], [180.0, 0.0, 0.0]],
+    "RandomizeRotation": true,
+    "StartColor": [[1.0, 0.0, 0.0], [1.0, 0.3, 0.0]],
+    "Gravity": [4.9, 9.8],
+    "SimulationSpace": "Local",
+    "PlayOnAwake": true,
+    "MaxParticles": 256,
+    "Emission": {
+        "RateOverTime": 10,
+        "RateOverDistance": 0,
+        "Burusts": [
+            [0.05, 10],
+            [0.10, 5]
+        ]
+    },
+    "Shape":{
+        "Shape": "Cone",
+        "Angle": 25,
+        "Radius": 1.0
+    },
+    "Color": {
+        "ColorCurve":{
+            "Red":[[1.0, 1.0], [1.0, 1.0]],
+            "Green":[[0.0, 1.0], [1.0, 1.0]],
+            "Blue":[[0.0, 1.0], [0.5, 1.0], [1.0, 0.0]],
+            "Alpha":[[1.0, 1.0], [1.0, 1.0]]
+        }
+    },
+    "Size":{
+        "SizeCurve":{
+            "SizeX":[[1.0, 1.0], [1.0, 1.0]],
+            "SizeY":[[0.0, 1.0], [1.0, 1.0]],
+            "SizeZ":[[0.0, 1.0], [0.5, 1.0], [1.0, 0.0]]
+        }
+    },
+    "RotationOverLifetime": [[0.0, 0.0, 0.0], [180.0, 0.0, 0.0]],
+
+
+
+}
