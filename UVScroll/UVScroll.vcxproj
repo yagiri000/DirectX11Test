@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <RootNamespace>ShaderUsingTextureTest</RootNamespace>
+    <RootNamespace>UVScroll</RootNamespace>
     <ProjectGuid>{1b9cbd92-be0f-48fb-b557-71c1c509932a}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>

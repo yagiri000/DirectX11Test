@@ -23,7 +23,7 @@
     <ProjectGuid>{fd85f82c-3f55-4d1a-9d5e-3bf2943d31c0}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
-    <ProjectName>Particle</ProjectName>
+    <ProjectName>Particle_BadExample</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

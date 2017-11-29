@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <RootNamespace>InstancingBillboard</RootNamespace>
+    <RootNamespace>Billboard_Instancing</RootNamespace>
     <ProjectGuid>{1e5a70b7-66f3-493a-9893-a0b0dd5d8416}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
