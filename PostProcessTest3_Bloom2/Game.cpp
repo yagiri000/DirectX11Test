@@ -70,8 +70,8 @@ void Game::Render()
 	Clear();
 
 	static Vector3 pos(Vector3::Zero);
-	const float Speed = 0.02f;
-	
+	const float Speed = 0.09f;
+
 	float time = m_timer.GetTotalSeconds();
 
 	if (GetKeyState('W') & 0x80) {
@@ -116,6 +116,23 @@ void Game::Render()
 	Game::GetDefaultSize(width, height);
 	mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
+	m_context->OMSetBlendState(m_commonStates->Opaque(), nullptr, 0xffffffff);
+	m_context->OMSetDepthStencilState(m_commonStates->DepthDefault(), 0);
+	m_context->RSSetState(m_commonStates->CullNone());
+
+	// Set vertex buffer
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+
+	// Set index buffer
+	m_context.Get()->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+
+	// Set primitive topology
+	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// Set the input layout
+	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
 	// 使用シェーダー登録
 	m_context.Get()->VSSetShader(m_vertexShader.Get(), NULL, 0);
 	m_context.Get()->PSSetShader(m_pixelShader.Get(), NULL, 0);
@@ -143,16 +160,111 @@ void Game::Render()
 	m_context.Get()->DrawIndexed(m_indexCount, 0, 0);
 
 	Present();
+
+	// 以下、ポストプロセス
+	// BloomTexture作成
+	m_context->OMSetRenderTargets(1, m_bloomedRT.GetAddressOf(), nullptr);
+	m_postProcess->SetBloomExtractParameter(0.9f);
+	m_postProcess->SetEffect(BasicPostProcess::BloomExtract);
+	m_postProcess->SetSourceTexture(m_sceneSRV.Get());
+	m_postProcess->Process(m_context.Get());
+
+	m_context->OMSetRenderTargets(1, m_bloomedRT2.GetAddressOf(), nullptr);
+	m_postProcess->SetBloomBlurParameters(true, 32.0f, 4.0f);
+	m_postProcess->SetEffect(BasicPostProcess::BloomBlur);
+	m_postProcess->SetSourceTexture(m_bloomedSRV.Get());
+	m_postProcess->Process(m_context.Get());
+
+	m_context->OMSetRenderTargets(1, m_bloomedRT.GetAddressOf(), nullptr);
+	m_postProcess->SetBloomBlurParameters(false, 32.0f, 4.0f);
+	m_postProcess->SetEffect(BasicPostProcess::BloomBlur);
+	m_postProcess->SetSourceTexture(m_bloomedSRV2.Get());
+	m_postProcess->Process(m_context.Get());
+
+	m_context->OMSetRenderTargets(1, m_bloomedRT2.GetAddressOf(), nullptr);
+	m_postProcess->SetBloomBlurParameters(true, 32.0f, 4.0f);
+	m_postProcess->SetEffect(BasicPostProcess::BloomBlur);
+	m_postProcess->SetSourceTexture(m_bloomedSRV.Get());
+	m_postProcess->Process(m_context.Get());
+
+	m_context->OMSetRenderTargets(1, m_bloomedRT.GetAddressOf(), nullptr);
+	m_postProcess->SetBloomBlurParameters(false, 32.0f, 4.0f);
+	m_postProcess->SetEffect(BasicPostProcess::BloomBlur);
+	m_postProcess->SetSourceTexture(m_bloomedSRV2.Get());
+	m_postProcess->Process(m_context.Get());
+
+	m_context->OMSetRenderTargets(1, m_bloomedRT2.GetAddressOf(), nullptr);
+	m_postProcess->SetBloomBlurParameters(true, 32.0f, 4.0f);
+	m_postProcess->SetEffect(BasicPostProcess::BloomBlur);
+	m_postProcess->SetSourceTexture(m_bloomedSRV.Get());
+	m_postProcess->Process(m_context.Get());
+
+	m_context->OMSetRenderTargets(1, m_bloomedRT.GetAddressOf(), nullptr);
+	m_postProcess->SetBloomBlurParameters(false, 32.0f, 4.0f);
+	m_postProcess->SetEffect(BasicPostProcess::BloomBlur);
+	m_postProcess->SetSourceTexture(m_bloomedSRV2.Get());
+	m_postProcess->Process(m_context.Get());
+
+
+	// SceneTextureとBloomTextureをCombine
+	// キーを押すと[Z] = SceneTexture, [X] = BloomTextureのみ表示
+	int flag = 0;
+
+	if (GetKeyState('Z') & 0x80) {
+		flag = 1;
+	}
+	if (GetKeyState('X') & 0x80) {
+		flag = 2;
+	}
+	if (GetKeyState('C') & 0x80) {
+		flag = 3;
+	}
+	if (flag == 0) {
+		m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+		m_dualPostProcess->SetSourceTexture(m_sceneSRV.Get());
+		m_dualPostProcess->SetSourceTexture2(m_bloomedSRV.Get());
+		m_dualPostProcess->SetBloomCombineParameters(6.0f, 1.0f, 1.0f, 1.0f);
+		m_dualPostProcess->SetEffect(DualPostProcess::BloomCombine);
+		m_dualPostProcess->Process(m_context.Get());
+	}
+	else if (flag == 1) {
+		// SceneTextureのみ表示
+		m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+		m_dualPostProcess->SetSourceTexture(m_sceneSRV.Get());
+		m_dualPostProcess->SetSourceTexture2(m_bloomedSRV.Get());
+		m_dualPostProcess->SetMergeParameters(1.0f, 0.0f);
+		m_dualPostProcess->SetEffect(DualPostProcess::Merge);
+		m_dualPostProcess->Process(m_context.Get());
+	}
+	else if (flag == 2) {
+		// BloomTextureのみ表示
+		m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+		m_dualPostProcess->SetSourceTexture(m_sceneSRV.Get());
+		m_dualPostProcess->SetSourceTexture2(m_bloomedSRV.Get());
+		m_dualPostProcess->SetMergeParameters(0.0f, 1.0f);
+		m_dualPostProcess->SetEffect(DualPostProcess::Merge);
+		m_dualPostProcess->Process(m_context.Get());
+	}
+	else if (flag == 3) {
+		// BloomTexture2のみ表示
+		m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+		m_dualPostProcess->SetSourceTexture(m_sceneSRV.Get());
+		m_dualPostProcess->SetSourceTexture2(m_bloomedSRV2.Get());
+		m_dualPostProcess->SetMergeParameters(0.0f, 1.0f);
+		m_dualPostProcess->SetEffect(DualPostProcess::Merge);
+		m_dualPostProcess->Process(m_context.Get());
+	}
+
 }
 
 // Helper method to clear the back buffers.
 void Game::Clear()
 {
 	// Clear the views.
-	m_context->ClearRenderTargetView(m_renderTargetView.Get(), Colors::CornflowerBlue);
+	m_context->ClearRenderTargetView(m_sceneRT.Get(), Colors::Black);
 	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+	m_context->OMSetRenderTargets(1, m_sceneRT.GetAddressOf(), m_depthStencilView.Get());
 
 	// Set the viewport.
 	CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(m_outputWidth), static_cast<float>(m_outputHeight));
@@ -308,8 +420,59 @@ void Game::CreateDevice()
 
 	// TODO: Initialize device dependent objects here (independent of window size).
 
+	// TODO: Initialize device dependent objects here (independent of window size).
+	CD3D11_TEXTURE2D_DESC sceneDesc(
+		DXGI_FORMAT_R16G16B16A16_FLOAT, 800, 600,
+		1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+
+	DX::ThrowIfFailed(
+		m_device->CreateTexture2D(&sceneDesc, nullptr, m_sceneTex.GetAddressOf())
+	);
+
+	DX::ThrowIfFailed(
+		m_device->CreateShaderResourceView(m_sceneTex.Get(), nullptr,
+			m_sceneSRV.ReleaseAndGetAddressOf())
+	);
+
+	DX::ThrowIfFailed(
+		m_device->CreateRenderTargetView(m_sceneTex.Get(), nullptr,
+			m_sceneRT.ReleaseAndGetAddressOf()
+		));
 
 
+	DX::ThrowIfFailed(
+		m_device->CreateTexture2D(&sceneDesc, nullptr, m_bloomedTex.GetAddressOf())
+	);
+
+	DX::ThrowIfFailed(
+		m_device->CreateShaderResourceView(m_bloomedTex.Get(), nullptr,
+			m_bloomedSRV.ReleaseAndGetAddressOf())
+	);
+
+	DX::ThrowIfFailed(
+		m_device->CreateRenderTargetView(m_bloomedTex.Get(), nullptr,
+			m_bloomedRT.ReleaseAndGetAddressOf()
+		));
+
+
+	DX::ThrowIfFailed(
+		m_device->CreateTexture2D(&sceneDesc, nullptr, m_bloomedTex2.GetAddressOf())
+	);
+
+	DX::ThrowIfFailed(
+		m_device->CreateShaderResourceView(m_bloomedTex2.Get(), nullptr,
+			m_bloomedSRV2.ReleaseAndGetAddressOf())
+	);
+
+	DX::ThrowIfFailed(
+		m_device->CreateRenderTargetView(m_bloomedTex2.Get(), nullptr,
+			m_bloomedRT2.ReleaseAndGetAddressOf()
+		));
+
+
+	m_postProcess = std::make_unique<BasicPostProcess>(m_device.Get());
+	m_dualPostProcess = std::make_unique<DualPostProcess>(m_device.Get());
+	m_commonStates = std::make_unique<CommonStates>(m_device.Get());
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -441,8 +604,6 @@ void Game::CreateResources()
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
-	// Set the input layout
-	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = NULL;
@@ -523,16 +684,6 @@ void Game::CreateResources()
 	if (FAILED(hr))
 		return DX::ThrowIfFailed(hr);
 
-	// Set vertex buffer
-	UINT stride = sizeof(SimpleVertex);
-	UINT offset = 0;
-	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-
-	// Set index buffer
-	m_context.Get()->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-
-	// Set primitive topology
-	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 
 	//コンスタントバッファー作成　ここでは変換行列渡し用

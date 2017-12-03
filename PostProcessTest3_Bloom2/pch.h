@@ -51,6 +51,9 @@
 #include "SpriteBatch.h"
 #include "WICTextureLoader.h"
 #include "SimpleMath.h"
+#include "PostProcess.h"
+#include "Effects.h"
+#include "CommonStates.h"
 
 namespace DX
 {

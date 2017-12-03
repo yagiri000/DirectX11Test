@@ -39,5 +39,5 @@ float4 PS(VS_OUTPUT input) : SV_Target
 	float3 LightDir = normalize(input.Light);
 	float4 NL = saturate(dot(Normal, LightDir));
 
-	return 0.5 * g_Diffuse + 0.5 * g_Diffuse * NL;
+    return 0.5 * g_Diffuse + 1.0 * float4(1.0, 1.0, 1.0, 1.0) * NL;
 }

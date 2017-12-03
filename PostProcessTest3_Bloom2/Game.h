@@ -78,6 +78,16 @@ private:
     Microsoft::WRL::ComPtr<IDXGISwapChain1>         m_swapChain;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
+	// Texture Resources
+	Microsoft::WRL::ComPtr<ID3D11Texture2D>				m_sceneTex;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	m_sceneSRV;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>		m_sceneRT;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D>				m_bloomedTex;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	m_bloomedSRV;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>		m_bloomedRT;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D>				m_bloomedTex2;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	m_bloomedSRV2;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>		m_bloomedRT2;
 
 	Microsoft::WRL::ComPtr<ID3D11VertexShader>     m_vertexShader = NULL;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>      m_pixelShader = NULL;
@@ -86,7 +96,9 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer>           m_indexBuffer = NULL;
 	Microsoft::WRL::ComPtr<ID3D11Buffer>           m_constantBuffer = NULL;
 	UINT					m_indexCount;
-
+	std::unique_ptr<DirectX::BasicPostProcess> m_postProcess;
+	std::unique_ptr<DirectX::DualPostProcess> m_dualPostProcess;
+	std::unique_ptr<CommonStates> m_commonStates;
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
 };

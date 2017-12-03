@@ -29,4 +29,7 @@
       <Filter>Assets</Filter>
     </Manifest>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Tutorial02.fx" />
+  </ItemGroup>
 </Project>
