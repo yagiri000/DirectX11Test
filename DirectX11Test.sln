@@ -79,7 +79,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ComputeShaderCalc2", "Compu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ParticleSystem_GS_CS", "ParticleSystem_GS_CS\ParticleSystem_GS_CS.vcxproj", "{823D3865-6419-41FE-B18B-6C44E2501DDC}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PostEffectTest3", "PostEffectTest3\PostEffectTest3.vcxproj", "{24D7F590-E189-44EF-8D01-51D8D6C4606F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PostEffectTest3_BloomBlur", "PostEffectTest3\PostEffectTest3.vcxproj", "{24D7F590-E189-44EF-8D01-51D8D6C4606F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PostProcessTest3_Bloom2", "PostProcessTest3_Bloom2\PostProcessTest3_Bloom2.vcxproj", "{4052BB04-051E-46E1-8F00-AC49BCBDD69B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -401,6 +403,14 @@ Global
 		{24D7F590-E189-44EF-8D01-51D8D6C4606F}.Release|x64.Build.0 = Release|x64
 		{24D7F590-E189-44EF-8D01-51D8D6C4606F}.Release|x86.ActiveCfg = Release|Win32
 		{24D7F590-E189-44EF-8D01-51D8D6C4606F}.Release|x86.Build.0 = Release|Win32
+		{4052BB04-051E-46E1-8F00-AC49BCBDD69B}.Debug|x64.ActiveCfg = Debug|x64
+		{4052BB04-051E-46E1-8F00-AC49BCBDD69B}.Debug|x64.Build.0 = Debug|x64
+		{4052BB04-051E-46E1-8F00-AC49BCBDD69B}.Debug|x86.ActiveCfg = Debug|Win32
+		{4052BB04-051E-46E1-8F00-AC49BCBDD69B}.Debug|x86.Build.0 = Debug|Win32
+		{4052BB04-051E-46E1-8F00-AC49BCBDD69B}.Release|x64.ActiveCfg = Release|x64
+		{4052BB04-051E-46E1-8F00-AC49BCBDD69B}.Release|x64.Build.0 = Release|x64
+		{4052BB04-051E-46E1-8F00-AC49BCBDD69B}.Release|x86.ActiveCfg = Release|Win32
+		{4052BB04-051E-46E1-8F00-AC49BCBDD69B}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
