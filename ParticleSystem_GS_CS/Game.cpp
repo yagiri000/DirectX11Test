@@ -177,7 +177,7 @@ void Game::CreateResources()
 	auto& res = Resource::Get();
 	Resource::OnCreateResources();
 
-	Font::Initialize(res.m_device.Get(), res.m_context.Get(), L"myfile.spritefont");
+	Font::Initialize(res.m_device.Get(), res.m_context.Get(), L"s_u_18.spritefont");
 
 	m_particleSystem = std::make_unique<ParticleSystem>();
 	m_particleSystem->OnInitialize();
