@@ -38,6 +38,8 @@ void Resource::Load(ID3D11Device* device)
 #endif
 
 	load(L"Crystal.cmo");
+	load(L"AlphaBox.cmo");
+	load(L"panda.cmo");
 }
 
 void Resource::Draw(ID3D11DeviceContext * deviceContext, const std::wstring & key, FXMMATRIX world)

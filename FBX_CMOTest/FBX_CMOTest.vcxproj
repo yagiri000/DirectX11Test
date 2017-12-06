@@ -186,6 +186,7 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\..\..\Dropbox\Graphics\Blender\Panda_Exercise\Panda01.png" />
     <Image Include="directx.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -200,7 +201,9 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <MeshContentTask Include="Assets\AlphaBox.fbx" />
     <MeshContentTask Include="Assets\Crystal.fbx" />
+    <MeshContentTask Include="Assets\panda.fbx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
