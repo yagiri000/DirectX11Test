@@ -115,7 +115,7 @@ void Game::Render()
     // Render a triangle
 	float elapsed = m_timer.GetTotalSeconds();
 
-	static Vector3 pos(0.0f, 0.0f, 15.0f);
+	static Vector3 pos(0.0f, 5.0f, 15.0f);
 	const float Speed = 0.1f;
 
 	if (GetKeyState('W') & 0x80) {
@@ -155,24 +155,13 @@ void Game::Render()
 	//mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix() * Matrix::CreateTranslation(pos);
 	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix::CreateRotationY(XM_PI * elapsed * 0.3f) * Matrix();
 
-	// ビュートランスフォーム（視点座標変換）
-	//Vector3 eye(0.0f, 2.0f, 5.0f); //カメラ（視点）位置
-	//Vector3 lookat(0.0f, 0.0f, 0.0f);//注視位置
-	//Vector3 up(0.0f, 1.0f, 0.0f);//上方位置
-	//mView = Matrix::CreateLookAt(eye, lookat, up);
-
-
-	// プロジェクショントランスフォーム（射影変換）
-	//int width, height;
-	//Game::GetDefaultSize(width, height);
-	//mProj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
 	
 	Camera::SetProjectionInfo(XM_PI / 4.0f, 0.1f, 1000.0f);
-	Camera::SetTransform(Transform(Vector3(pos), Vector3::One, Quaternion::CreateFromYawPitchRoll(0.0f, 0.0f, 0.0f)));
+	Camera::SetTransform(Transform(Vector3(pos), Vector3::One, Utility::LookRotation(-pos)));
 
 	// Resource::Draw(m_context.Get(), L"Crystal.cmo", mWorld);
-	Resource::Draw(m_context.Get(), L"panda.cmo", mWorld);
+	Resource::Draw(m_context.Get(), L"AlphaBox.cmo", mWorld);
 
 
     Present();
@@ -182,7 +171,7 @@ void Game::Render()
 void Game::Clear()
 {
     // Clear the views.
-    m_context->ClearRenderTargetView(m_renderTargetView.Get(), Color(0.3f, 0.1f, 0.0f));
+    m_context->ClearRenderTargetView(m_renderTargetView.Get(), Color(0.1f, 0.1f, 0.1f));
     m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());

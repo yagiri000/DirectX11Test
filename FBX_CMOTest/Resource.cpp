@@ -45,7 +45,16 @@ void Resource::Load(ID3D11Device* device)
 void Resource::Draw(ID3D11DeviceContext * deviceContext, const std::wstring & key, FXMMATRIX world)
 {
 	Resource& ins = Get();
-	ins.m_models[key]->Draw(deviceContext, *ins.m_states, world, Camera::View(), Camera::Projection());
+	// •`‰æ‡‚É‚æ‚è”¼“§–¾•`‰æ‚ª‚¨‚©‚µ‚­‚È‚é‚Ì‚ÅA— –Ê‚ð•`‰æ‚µ‚½ŒãƒIƒ‚ƒe–Ê‚ð•`‰æ‚·‚é
+	ins.m_models[key]->Draw(deviceContext, *ins.m_states, world, Camera::View(), Camera::Projection(), false, [&]() {
+		deviceContext->OMSetBlendState(ins.m_states->NonPremultiplied(), nullptr, 0xFFFFFFFF);
+		deviceContext->RSSetState(ins.m_states->CullClockwise());
+	}); 
+	
+	ins.m_models[key]->Draw(deviceContext, *ins.m_states, world, Camera::View(), Camera::Projection(), false, [&]() {
+		deviceContext->OMSetBlendState(ins.m_states->NonPremultiplied(), nullptr, 0xFFFFFFFF);
+		deviceContext->RSSetState(ins.m_states->CullCounterClockwise());
+	});
 }
 
 
