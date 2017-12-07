@@ -27,8 +27,12 @@ void Resource::Load(ID3D11Device* device)
 
 #ifdef _DEBUG
 	auto load = [&](const std::wstring& filename) {
-		std::wstring fn = L"../Debug/" + filename;
-		ins.m_models.emplace(filename, Model::CreateFromCMO(device, fn.c_str(), *(ins.m_fxFactory)));
+		WCHAR szDirectoryName[MAX_PATH];
+		GetCurrentDirectory(sizeof(szDirectoryName) / sizeof(szDirectoryName[0]), szDirectoryName);
+		SetCurrentDirectory(L"../Debug/");
+		ins.m_models.emplace(filename, Model::CreateFromCMO(device, filename.c_str(), *(ins.m_fxFactory)));
+		SetCurrentDirectory(szDirectoryName);
+
 	};
 #else
 	auto load = [&](const std::wstring& filename) {
@@ -37,9 +41,9 @@ void Resource::Load(ID3D11Device* device)
 	};
 #endif
 
+
 	load(L"Crystal.cmo");
 	load(L"AlphaBox.cmo");
-	load(L"panda.cmo");
 }
 
 void Resource::Draw(ID3D11DeviceContext * deviceContext, const std::wstring & key, FXMMATRIX world)
