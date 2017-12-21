@@ -42,8 +42,9 @@ void Resource::Load(ID3D11Device* device)
 #endif
 
 
-	load(L"Crystal.cmo");
-	load(L"AlphaBox.cmo");
+	load(L"FAIRY_texed.cmo");
+	load(L"Floor100.cmo");
+
 }
 
 void Resource::Draw(ID3D11DeviceContext * deviceContext, const std::wstring & key, FXMMATRIX world)
@@ -52,13 +53,9 @@ void Resource::Draw(ID3D11DeviceContext * deviceContext, const std::wstring & ke
 	// •`‰æ‡‚É‚æ‚è”¼“§–¾•`‰æ‚ª‚¨‚©‚µ‚­‚È‚é‚Ì‚ÅA— –Ê‚ð•`‰æ‚µ‚½ŒãƒIƒ‚ƒe–Ê‚ð•`‰æ‚·‚é
 	ins.m_models[key]->Draw(deviceContext, *ins.m_states, world, Camera::View(), Camera::Projection(), false, [&]() {
 		deviceContext->OMSetBlendState(ins.m_states->NonPremultiplied(), nullptr, 0xFFFFFFFF);
-		deviceContext->RSSetState(ins.m_states->CullClockwise());
+		deviceContext->RSSetState(ins.m_states->CullNone());
 	}); 
 	
-	ins.m_models[key]->Draw(deviceContext, *ins.m_states, world, Camera::View(), Camera::Projection(), false, [&]() {
-		deviceContext->OMSetBlendState(ins.m_states->NonPremultiplied(), nullptr, 0xFFFFFFFF);
-		deviceContext->RSSetState(ins.m_states->CullCounterClockwise());
-	});
 }
 
 

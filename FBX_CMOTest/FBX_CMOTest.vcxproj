@@ -187,7 +187,12 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\EnemyCircuit01.png" />
+    <Image Include="Assets\fairy_tex_1.png" />
+    <Image Include="Assets\fairy_tex_2.png" />
+    <Image Include="Assets\Floor01.png" />
     <Image Include="Assets\RedAlpha.png" />
+    <Image Include="Assets\TestCloud.png" />
+    <Image Include="Assets\TestMosaic.png" />
     <Image Include="directx.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -204,6 +209,9 @@
   <ItemGroup>
     <MeshContentTask Include="Assets\AlphaBox.fbx" />
     <MeshContentTask Include="Assets\Crystal.fbx" />
+    <MeshContentTask Include="Assets\FAIRY_texed.fbx" />
+    <MeshContentTask Include="Assets\Floor100.fbx" />
+    <MeshContentTask Include="Assets\TestTwoMaterial.fbx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -115,7 +115,7 @@ void Game::Render()
     // Render a triangle
 	float elapsed = m_timer.GetTotalSeconds();
 
-	static Vector3 pos(0.0f, 5.0f, 15.0f);
+	static Vector3 pos(0.0f, 2.0f, 4.0f);
 	const float Speed = 0.1f;
 
 	if (GetKeyState('W') & 0x80) {
@@ -153,15 +153,15 @@ void Game::Render()
 
 	//ワールドトランスフォーム（絶対座標変換）
 	//mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix() * Matrix::CreateTranslation(pos);
-	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix::CreateRotationY(XM_PI * elapsed * 0.3f) * Matrix();
+	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix::CreateRotationY(XM_PI * elapsed * 0.0f) * Matrix();
 
 
 	
 	Camera::SetProjectionInfo(XM_PI / 4.0f, 0.1f, 1000.0f);
 	Camera::SetTransform(Transform(Vector3(pos), Vector3::One, Utility::LookRotation(-pos)));
 
-	// Resource::Draw(m_context.Get(), L"Crystal.cmo", mWorld);
-	Resource::Draw(m_context.Get(), L"AlphaBox.cmo", mWorld);
+	Resource::Draw(m_context.Get(), L"Floor100.cmo", Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix::CreateRotationY(XM_PI * elapsed * 0.0f) * Matrix::CreateTranslation(0.0f, -2.0f, 0.0f));
+	Resource::Draw(m_context.Get(), L"FAIRY_texed.cmo", mWorld);
 
 
     Present();

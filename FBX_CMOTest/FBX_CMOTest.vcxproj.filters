@@ -41,6 +41,21 @@
     <Image Include="Assets\RedAlpha.png">
       <Filter>Assets</Filter>
     </Image>
+    <Image Include="Assets\Floor01.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\TestCloud.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\TestMosaic.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\fairy_tex_1.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\fairy_tex_2.png">
+      <Filter>Assets</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="settings.manifest">
@@ -56,6 +71,15 @@
       <Filter>Assets</Filter>
     </MeshContentTask>
     <MeshContentTask Include="Assets\AlphaBox.fbx">
+      <Filter>Assets</Filter>
+    </MeshContentTask>
+    <MeshContentTask Include="Assets\Floor100.fbx">
+      <Filter>Assets</Filter>
+    </MeshContentTask>
+    <MeshContentTask Include="Assets\TestTwoMaterial.fbx">
+      <Filter>Assets</Filter>
+    </MeshContentTask>
+    <MeshContentTask Include="Assets\FAIRY_texed.fbx">
       <Filter>Assets</Filter>
     </MeshContentTask>
   </ItemGroup>
