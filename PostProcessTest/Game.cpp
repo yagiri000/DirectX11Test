@@ -490,20 +490,32 @@ void Game::CreateResources()
 	HRESULT hr;
 
 
-	//シェーダー読み込み
-	BinFile vscode(L"..\\Debug\\VertexShader.cso");
-	BinFile pscode(L"..\\Debug\\PixelShader.cso");
 
 	// 頂点シェーダ作成
 	//  メモ：シェーダーをデバッグ情報ありでコンパイルすると
 	//　　　　ここでエラー発生　CREATEVERTEXSHADER_INVALIDSHADERBYTECODE
+	BinFile vscode(L"..\\Debug\\VertexShader.cso");
 	hr = m_device.Get()->CreateVertexShader(vscode.get(), vscode.size(), NULL, m_vertexShader.GetAddressOf());
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
 
+	//
+	BinFile vsQuadCode(L"..\\Debug\\VSQuad.cso");
+	hr = m_device.Get()->CreateVertexShader(vsQuadCode.get(), vsQuadCode.size(), NULL, m_vertexShaderQuad.GetAddressOf());
+	if (FAILED(hr)) {
+		return DX::ThrowIfFailed(hr);
+	}
+
 	// ピクセルシェーダ作成
+	BinFile pscode(L"..\\Debug\\PixelShader.cso");
 	hr = m_device.Get()->CreatePixelShader(pscode.get(), pscode.size(), NULL, m_pixelShader.GetAddressOf());
+	if (FAILED(hr)) {
+		return DX::ThrowIfFailed(hr);
+	}
+
+	BinFile psCopyCode(L"..\\Debug\\PSCopy.cso");
+	hr = m_device.Get()->CreatePixelShader(psCopyCode.get(), psCopyCode.size(), NULL, m_pixelShaderCopy.GetAddressOf());
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
@@ -645,7 +657,9 @@ void Game::OnDeviceLost()
 	m_vertexConstantBuffer.Reset();
 	m_pixelConstantBuffer.Reset();
 	m_vertexShader.Reset();
+	m_vertexShaderQuad.Reset();
 	m_pixelShader.Reset();
+	m_pixelShaderCopy.Reset();
 	m_vertexLayout.Reset();
 	m_vertexBuffer.Reset();
 

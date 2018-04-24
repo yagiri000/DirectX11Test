@@ -25,7 +25,7 @@ static const float PI2 = 3.14159265 * 2;
 float4 main(PS_INPUT input) : SV_Target
 {
 	//float4 color = txDiffuse.Sample(samLinear, input.UV);
-	float4 color = 1;
+    float4 color = float4(1.0, 0.5, 0.0, 1.0);
 
 	float x = input.Tex.x;
 	float y = input.Tex.y;

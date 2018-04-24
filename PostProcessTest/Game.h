@@ -86,7 +86,9 @@ private:
 	ComPtr<ID3D11BlendState>		m_blendState;
 
 	ComPtr<ID3D11VertexShader>		m_vertexShader;
+	ComPtr<ID3D11VertexShader>		m_vertexShaderQuad;
 	ComPtr<ID3D11PixelShader>		m_pixelShader;
+	ComPtr<ID3D11PixelShader>		m_pixelShaderCopy;
 	ComPtr<ID3D11InputLayout>		m_vertexLayout;
 	ComPtr<ID3D11Buffer>			m_vertexBuffer;
 	ComPtr<ID3D11Buffer>			m_vertexConstantBuffer;
