@@ -102,6 +102,8 @@ void Game::Render()
 
 	Clear();
 
+	//m_context->ClearRenderTargetView(m_sceneRT.Get(), Colors::Black);
+	m_context->ClearRenderTargetView(m_postRT.Get(), Colors::Black);
 	// TODO: Add your rendering code here.
 	// Render a triangle
 	static float elapsed = 0.0f;
@@ -157,7 +159,7 @@ void Game::Render()
 	Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
 	//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
 	//ワールドトランスフォーム（絶対座標変換）
-	mWorld = Matrix::CreateScale(1.0f, 1.0f, 1.0f) * Matrix()
+	mWorld = Matrix::CreateScale(1.0f, 10.0f, 1.0f) * Matrix()
 		* Matrix::CreateTranslation(pos);
 
 	// プロジェクショントランスフォーム（射影変換）
@@ -220,8 +222,100 @@ void Game::Render()
 
 	//このコンスタントバッファーを、どのシェーダーで使うかを指定
 	m_context->PSSetConstantBuffers(0, 1, m_pixelConstantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
+	m_context->OMSetRenderTargets(1, m_sceneRT.GetAddressOf(), nullptr);
 
-	m_context.Get()->Draw(4, 0);
+	if (!(GetKeyState('V') & 0x80)) {
+		m_context.Get()->Draw(4, 0);
+	}
+
+
+	{
+		m_context->OMSetRenderTargets(1, m_postRT.GetAddressOf(), nullptr);
+
+		auto deviceContext = m_context.Get();
+		// Set the texture.
+		ID3D11ShaderResourceView* textures[1] = { m_sceneSRV.Get() };
+		deviceContext->PSSetShaderResources(0, 1, textures);
+
+		auto sampler = pSampler.Get();
+		deviceContext->PSSetSamplers(0, 1, &sampler);
+
+		// Set state objects.
+		deviceContext->OMSetBlendState(m_commonStates->Opaque(), nullptr, 0xffffffff);
+		deviceContext->OMSetDepthStencilState(m_commonStates->DepthNone(), 0);
+		deviceContext->RSSetState(m_commonStates->CullNone());
+
+		// Set shaders.
+		auto vertexShader = m_vertexShaderQuad.Get();
+		auto pixelShader = m_pixelShaderCopy.Get();
+
+		deviceContext->VSSetShader(vertexShader, nullptr, 0);
+		deviceContext->PSSetShader(pixelShader, nullptr, 0);
+
+		// Draw quad.
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		deviceContext->Draw(4, 0);
+	}
+
+	{
+		m_context->OMSetRenderTargets(1, m_sceneRT.GetAddressOf(), nullptr);
+
+		auto deviceContext = m_context.Get();
+		// Set the texture.
+		ID3D11ShaderResourceView* textures[1] = { m_postSRV.Get() };
+		deviceContext->PSSetShaderResources(0, 1, textures);
+
+		auto sampler = pSampler.Get();
+		deviceContext->PSSetSamplers(0, 1, &sampler);
+
+		// Set state objects.
+		deviceContext->OMSetBlendState(m_commonStates->Opaque(), nullptr, 0xffffffff);
+		deviceContext->OMSetDepthStencilState(m_commonStates->DepthNone(), 0);
+		deviceContext->RSSetState(m_commonStates->CullNone());
+
+		// Set shaders.
+		auto vertexShader = m_vertexShaderQuad.Get();
+		auto pixelShader = m_pixelShaderCopy.Get();
+
+		deviceContext->VSSetShader(vertexShader, nullptr, 0);
+		deviceContext->PSSetShader(pixelShader, nullptr, 0);
+
+		// Draw quad.
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		deviceContext->Draw(4, 0);
+	}
+
+	{
+		m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+
+		auto deviceContext = m_context.Get();
+		// Set the texture.
+		ID3D11ShaderResourceView* textures[1] = { m_sceneSRV.Get() };
+		deviceContext->PSSetShaderResources(0, 1, textures);
+
+		auto sampler = pSampler.Get();
+		deviceContext->PSSetSamplers(0, 1, &sampler);
+
+		// Set state objects.
+		deviceContext->OMSetBlendState(m_commonStates->Opaque(), nullptr, 0xffffffff);
+		deviceContext->OMSetDepthStencilState(m_commonStates->DepthNone(), 0);
+		deviceContext->RSSetState(m_commonStates->CullNone());
+
+		// Set shaders.
+		auto vertexShader = m_vertexShaderQuad.Get();
+		auto pixelShader = m_pixelShaderCopy.Get();
+
+		deviceContext->VSSetShader(vertexShader, nullptr, 0);
+		deviceContext->PSSetShader(pixelShader, nullptr, 0);
+
+		// Draw quad.
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		deviceContext->Draw(4, 0);
+	}
+
 
 	Present();
 }
@@ -230,7 +324,6 @@ void Game::Render()
 void Game::Clear()
 {
 	// Clear the views.
-	// m_context->ClearRenderTargetView(m_renderTargetView.Get(), Color(0.1f, 0.1f, 0.1f));
 	m_context->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Black);
 	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
@@ -365,6 +458,8 @@ void Game::CreateDevice()
 
 	// TODO: Initialize device dependent objects here (independent of window size).
 
+	m_commonStates = std::make_unique<CommonStates>(m_device.Get());
+
 
 
 }
@@ -375,7 +470,6 @@ void Game::CreateResources()
 	// Clear the previous window size specific context.
 	ID3D11RenderTargetView* nullViews[] = { nullptr };
 	m_context->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
-	m_renderTargetView.Reset();
 	m_depthStencilView.Reset();
 	m_context->Flush();
 
@@ -447,6 +541,39 @@ void Game::CreateResources()
 
 	// Create a view interface on the rendertarget to use on bind.
 	DX::ThrowIfFailed(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_renderTargetView.ReleaseAndGetAddressOf()));
+
+	// TODO: Initialize device dependent objects here (independent of window size).
+	CD3D11_TEXTURE2D_DESC sceneDesc(
+		DXGI_FORMAT_R16G16B16A16_FLOAT, m_outputWidth, m_outputHeight,
+		1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+
+	DX::ThrowIfFailed(
+		m_device->CreateTexture2D(&sceneDesc, nullptr, m_sceneTex.GetAddressOf())
+	);
+
+	DX::ThrowIfFailed(
+		m_device->CreateShaderResourceView(m_sceneTex.Get(), nullptr,
+			m_sceneSRV.ReleaseAndGetAddressOf())
+	);
+
+	DX::ThrowIfFailed(
+		m_device->CreateRenderTargetView(m_sceneTex.Get(), nullptr,
+			m_sceneRT.ReleaseAndGetAddressOf()
+		));
+
+	DX::ThrowIfFailed(
+		m_device->CreateTexture2D(&sceneDesc, nullptr, m_postTex.GetAddressOf())
+	);
+
+	DX::ThrowIfFailed(
+		m_device->CreateShaderResourceView(m_postTex.Get(), nullptr,
+			m_postSRV.ReleaseAndGetAddressOf())
+	);
+
+	DX::ThrowIfFailed(
+		m_device->CreateRenderTargetView(m_postTex.Get(), nullptr,
+			m_postRT.ReleaseAndGetAddressOf()
+		));
 
 	// Allocate a 2-D surface as the depth/stencil buffer and
 	// create a DepthStencil view on this surface to use on bind.
@@ -667,7 +794,15 @@ void Game::OnDeviceLost()
 	m_rasterizerState.Reset();
 	m_rasterizerStateWireFrame.Reset();
 	m_depthStencilView.Reset();
+
 	m_renderTargetView.Reset();
+	m_sceneTex.Reset();
+	m_sceneSRV.Reset();
+	m_sceneRT.Reset();
+	m_postTex.Reset();
+	m_postSRV.Reset();
+	m_postRT.Reset();
+
 	m_swapChain.Reset();
 
 	m_context.Reset();

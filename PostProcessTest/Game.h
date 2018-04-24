@@ -79,8 +79,16 @@ private:
     ComPtr<ID3D11DeviceContext1>    m_context;
 
     ComPtr<IDXGISwapChain1>         m_swapChain;
-    ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
+	ComPtr<ID3D11RenderTargetView>  m_renderTargetView;
     ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
+
+	ComPtr<ID3D11Texture2D>				m_sceneTex;
+	ComPtr<ID3D11ShaderResourceView>	m_sceneSRV;
+	ComPtr<ID3D11RenderTargetView>		m_sceneRT;
+	ComPtr<ID3D11Texture2D>				m_postTex;
+	ComPtr<ID3D11ShaderResourceView>	m_postSRV;
+	ComPtr<ID3D11RenderTargetView>		m_postRT;
+
 	ComPtr<ID3D11RasterizerState>	m_rasterizerState;
 	ComPtr<ID3D11RasterizerState>	m_rasterizerStateWireFrame;
 	ComPtr<ID3D11BlendState>		m_blendState;
@@ -97,6 +105,7 @@ private:
 	ComPtr<ID3D11ShaderResourceView> pShaderResView;
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
+	std::unique_ptr<CommonStates> m_commonStates;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
