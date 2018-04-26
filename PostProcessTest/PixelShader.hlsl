@@ -24,6 +24,6 @@ static const float PI2 = 3.14159265 * 2;
 
 float4 main(PS_INPUT input) : SV_Target
 {
-    float4 color = float4(1.0, 0.5, 0.0, 1.0);
+    float4 color = float4(1.0, 1, 1, 1.0);
 	return color;
 }
