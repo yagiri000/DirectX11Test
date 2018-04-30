@@ -10,8 +10,21 @@ struct VSInputTx
 
 float4 main(VSInputTx pin) : SV_Target
 {
-    float WIDTH_RATE = 1.0 / 1280.0;
-    float HEIGHT_RATE = 1.0 / 720.0;
+    float WIDTH_RATE = 1.0 / 1280.0 * 0.5;
+    float HEIGHT_RATE = 1.0 / 720.0 * 0.5;
+    float DOWN_RATE = HEIGHT_RATE * 0.01;
+
+    //float4 color = Texture.Sample(Sampler, pin.TexCoord) * 0.2;
+    float4 colorG = 0.0;
+    colorG += Texture.Sample(Sampler, pin.TexCoord + float2(WIDTH_RATE, 0.0 - DOWN_RATE)) * 0.25;
+    colorG += Texture.Sample(Sampler, pin.TexCoord + float2(-WIDTH_RATE, 0.0 - DOWN_RATE)) * 0.25;
+    colorG += Texture.Sample(Sampler, pin.TexCoord + float2(0.0, HEIGHT_RATE - DOWN_RATE)) * 0.25;
+    colorG += Texture.Sample(Sampler, pin.TexCoord + float2(0.0, -HEIGHT_RATE - DOWN_RATE)) * 0.25;
+    colorG.r = clamp(colorG.r, 0, 1);
+    colorG.g = clamp(colorG.g, 0, 1);
+    colorG.b = clamp(colorG.b, 0, 1);
+    colorG.rgb *= 0.99;
+    //colorG.gb *= 0.9;
 
     float4 color_ = Texture.Sample(Sampler, pin.TexCoord);
     
@@ -48,5 +61,7 @@ float4 main(VSInputTx pin) : SV_Target
     color.r = color.r - 0.2 / 255.0;
     color2.g = color2.g - 0.5 / 255.0;
     color3.b = color3.b - 0.5 / 255.0;
-    return float4(color.r, color2.g, color3.b, 1.0);
+    color = float4(color.r, color2.g, color3.b, 1.0);
+
+    return color * 0.9 + colorG * 0.1;
 }

@@ -159,7 +159,7 @@ void Game::Render()
 	Matrix dirMat = Matrix::CreateWorld(Vector3::Zero, Vector3(0.0f, 0.0f, -0.01f) - pos, Vector3::Up);
 	//Quaternion q = Quaternion::CreateFromRotationMatrix(dirMat);
 	//ワールドトランスフォーム（絶対座標変換）
-	mWorld = Matrix::CreateScale(1.0f, 10.0f, 1.0f) * Matrix()
+	mWorld = Matrix::CreateScale(0.3f, 0.3f, 0.3f) * Matrix()
 		* Matrix::CreateTranslation(pos);
 
 	// プロジェクショントランスフォーム（射影変換）
