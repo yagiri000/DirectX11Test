@@ -102,10 +102,13 @@ private:
 	ComPtr<ID3D11Buffer>			m_vertexConstantBuffer;
 	ComPtr<ID3D11Buffer>			m_pixelConstantBuffer;
 
+
 	ComPtr<ID3D11ShaderResourceView> pShaderResView;
 	ComPtr<ID3D11SamplerState> pSampler;
 	ComPtr<ID3D11Resource> pTexture;
 	std::unique_ptr<CommonStates> m_commonStates;
+	std::unique_ptr<DirectX::SpriteBatch> m_spriteBatch;
+	ComPtr<ID3D11ShaderResourceView> m_texture;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;

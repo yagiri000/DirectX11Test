@@ -104,11 +104,19 @@ void Game::Render()
 
 	m_context->ClearRenderTargetView(m_sceneRT.Get(), Colors::Black);
 	m_context->ClearRenderTargetView(m_postRT.Get(), Colors::Black);
+	m_context->OMSetRenderTargets(1, m_sceneRT.GetAddressOf(), nullptr);
 	// TODO: Add your rendering code here.
 	// Render a triangle
 	static float elapsed = 0.0f;
-
 	elapsed += m_timer.GetElapsedSeconds();
+
+
+	m_spriteBatch->Begin();
+
+	m_spriteBatch->Draw(m_texture.Get(), Vector2::Zero, nullptr, Colors::White,
+		0.f, Vector2::Zero);
+
+	m_spriteBatch->End();
 
 	static Vector3 pos = Vector3::Zero;
 	static constexpr float Speed = 0.03f;
@@ -222,7 +230,13 @@ void Game::Render()
 
 	//このコンスタントバッファーを、どのシェーダーで使うかを指定
 	m_context->PSSetConstantBuffers(0, 1, m_pixelConstantBuffer.GetAddressOf());//ピクセルシェーダーでの使う
-	m_context->OMSetRenderTargets(1, m_sceneRT.GetAddressOf(), nullptr);
+
+	m_context.Get()->IASetInputLayout(m_vertexLayout.Get());
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	m_context.Get()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+	m_context.Get()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
 
 	if (!(GetKeyState('V') & 0x80)) {
 		m_context.Get()->Draw(4, 0);
@@ -402,6 +416,11 @@ void Game::CreateDevice()
 
 	m_commonStates = std::make_unique<CommonStates>(m_device.Get());
 
+	m_spriteBatch = std::make_unique<SpriteBatch>(m_context.Get());
+
+	DX::ThrowIfFailed(
+		CreateWICTextureFromFile(m_device.Get(), L"BackGround720.png", nullptr,
+			m_texture.ReleaseAndGetAddressOf()));
 
 
 }
@@ -609,7 +628,7 @@ void Game::CreateResources()
 
 
 	// テクスチャ作成
-	hr = DirectX::CreateWICTextureFromFile(m_device.Get(), L"image.png", &pTexture, &pShaderResView);
+	hr = DirectX::CreateWICTextureFromFile(m_device.Get(), L"BackGround720.png", &pTexture, &pShaderResView);
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
 	}
