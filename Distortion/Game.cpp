@@ -103,14 +103,18 @@ void Game::Render()
 	Clear();
 
 	m_context->ClearRenderTargetView(m_sceneRT.Get(), Colors::Black);
-	m_context->ClearRenderTargetView(m_postRT.Get(), Colors::Black);
-	m_context->OMSetRenderTargets(1, m_sceneRT.GetAddressOf(), nullptr);
+	float color[4] = { 0.5, 0.5, 1.0, 1.0 };
+	m_context->ClearRenderTargetView(m_distortionRT.Get(), color);
+
 	// TODO: Add your rendering code here.
 	// Render a triangle
 	static float elapsed = 0.0f;
 	elapsed += m_timer.GetElapsedSeconds();
+	static Vector3 pos = Vector3::Zero;
+	static constexpr float Speed = 0.03f;
 
 
+	m_context->OMSetRenderTargets(1, m_sceneRT.GetAddressOf(), nullptr);
 	m_spriteBatch->Begin();
 
 	m_spriteBatch->Draw(m_texture.Get(), Vector2::Zero, nullptr, Colors::White,
@@ -118,8 +122,16 @@ void Game::Render()
 
 	m_spriteBatch->End();
 
-	static Vector3 pos = Vector3::Zero;
-	static constexpr float Speed = 0.03f;
+
+	m_context->OMSetRenderTargets(1, m_distortionRT.GetAddressOf(), nullptr);
+
+	m_spriteBatch->Begin();
+
+	m_spriteBatch->Draw(m_textureDistortion.Get(), Vector2(pos.x, pos.z) * 300.0f, nullptr, Colors::White,
+		0.f, Vector2::Zero);
+
+	m_spriteBatch->End();
+
 
 	if (GetKeyState('W') & 0x80) {
 		pos += Speed * Vector3::Forward;
@@ -239,7 +251,7 @@ void Game::Render()
 
 
 	if (!(GetKeyState('V') & 0x80)) {
-		m_context.Get()->Draw(4, 0);
+		//m_context.Get()->Draw(4, 0);
 	}
 
 
@@ -248,9 +260,14 @@ void Game::Render()
 
 		auto deviceContext = m_context.Get();
 		// Set the texture.
-		ID3D11ShaderResourceView* textures[1] = { m_sceneSRV.Get() };
-		deviceContext->PSSetShaderResources(0, 1, textures);
-
+		{
+			ID3D11ShaderResourceView* textures[1] = { m_sceneSRV.Get() };
+			deviceContext->PSSetShaderResources(0, 1, textures);
+		}
+		{
+			ID3D11ShaderResourceView* textures[1] = { m_distortionSRV.Get() };
+			deviceContext->PSSetShaderResources(1, 1, textures);
+		}
 		auto sampler = pSampler.Get();
 		deviceContext->PSSetSamplers(0, 1, &sampler);
 
@@ -282,7 +299,6 @@ void Game::Clear()
 	// Clear the views.
 	m_context->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Black);
 	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
 	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 
 	// Set the viewport.
@@ -421,6 +437,9 @@ void Game::CreateDevice()
 	DX::ThrowIfFailed(
 		CreateWICTextureFromFile(m_device.Get(), L"BackGround720.png", nullptr,
 			m_texture.ReleaseAndGetAddressOf()));
+	DX::ThrowIfFailed(
+		CreateWICTextureFromFile(m_device.Get(), L"DistortionMap.png", nullptr,
+			m_textureDistortion.ReleaseAndGetAddressOf()));
 
 
 }
@@ -523,17 +542,17 @@ void Game::CreateResources()
 		));
 
 	DX::ThrowIfFailed(
-		m_device->CreateTexture2D(&sceneDesc, nullptr, m_postTex.GetAddressOf())
+		m_device->CreateTexture2D(&sceneDesc, nullptr, m_distortionTex.GetAddressOf())
 	);
 
 	DX::ThrowIfFailed(
-		m_device->CreateShaderResourceView(m_postTex.Get(), nullptr,
-			m_postSRV.ReleaseAndGetAddressOf())
+		m_device->CreateShaderResourceView(m_distortionTex.Get(), nullptr,
+			m_distortionSRV.ReleaseAndGetAddressOf())
 	);
 
 	DX::ThrowIfFailed(
-		m_device->CreateRenderTargetView(m_postTex.Get(), nullptr,
-			m_postRT.ReleaseAndGetAddressOf()
+		m_device->CreateRenderTargetView(m_distortionTex.Get(), nullptr,
+			m_distortionRT.ReleaseAndGetAddressOf()
 		));
 
 	// Allocate a 2-D surface as the depth/stencil buffer and
@@ -602,7 +621,7 @@ void Game::CreateResources()
 		return DX::ThrowIfFailed(hr);
 	}
 
-	BinFile psCopyCode(L"..\\Debug\\PSCopy.cso");
+	BinFile psCopyCode(L"..\\Debug\\DistortionMerge.cso");
 	hr = m_device.Get()->CreatePixelShader(psCopyCode.get(), psCopyCode.size(), NULL, m_pixelShaderCopy.GetAddressOf());
 	if (FAILED(hr)) {
 		return DX::ThrowIfFailed(hr);
@@ -760,14 +779,18 @@ void Game::OnDeviceLost()
 	m_sceneTex.Reset();
 	m_sceneSRV.Reset();
 	m_sceneRT.Reset();
-	m_postTex.Reset();
-	m_postSRV.Reset();
-	m_postRT.Reset();
+	m_distortionTex.Reset();
+	m_distortionSRV.Reset();
+	m_distortionRT.Reset();
 
 	m_swapChain.Reset();
 
 	m_context.Reset();
 	m_device.Reset();
+
+	m_texture.Reset();
+	m_textureDistortion.Reset();
+	m_spriteBatch.reset();
 
 
 	CreateDevice();

@@ -39,8 +39,8 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl" />
-    <FxCompile Include="PSCopy.hlsl" />
     <FxCompile Include="VertexShader.hlsl" />
     <FxCompile Include="VSQuad.hlsl" />
+    <FxCompile Include="DistortionMerge.hlsl" />
   </ItemGroup>
 </Project>

@@ -85,9 +85,9 @@ private:
 	ComPtr<ID3D11Texture2D>				m_sceneTex;
 	ComPtr<ID3D11ShaderResourceView>	m_sceneSRV;
 	ComPtr<ID3D11RenderTargetView>		m_sceneRT;
-	ComPtr<ID3D11Texture2D>				m_postTex;
-	ComPtr<ID3D11ShaderResourceView>	m_postSRV;
-	ComPtr<ID3D11RenderTargetView>		m_postRT;
+	ComPtr<ID3D11Texture2D>				m_distortionTex;
+	ComPtr<ID3D11ShaderResourceView>	m_distortionSRV;
+	ComPtr<ID3D11RenderTargetView>		m_distortionRT;
 
 	ComPtr<ID3D11RasterizerState>	m_rasterizerState;
 	ComPtr<ID3D11RasterizerState>	m_rasterizerStateWireFrame;
@@ -109,6 +109,7 @@ private:
 	std::unique_ptr<CommonStates> m_commonStates;
 	std::unique_ptr<DirectX::SpriteBatch> m_spriteBatch;
 	ComPtr<ID3D11ShaderResourceView> m_texture;
+	ComPtr<ID3D11ShaderResourceView> m_textureDistortion;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
